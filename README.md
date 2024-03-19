@@ -25,7 +25,18 @@ IceCast radio station of a TTS (espeak) reading off, hopefully soon:
 
 ### piper-tts setup
 
-pipx
+```
+sudo apt-get install pipx
+pipx install piper-tts
+```
+
+Download:
+
+  * [The JSON for the hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx.json)
+  * [The hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx?download=true)
+  * [Check out the supported voices for Piper](https://github.com/rhasspy/piper/blob/master/VOICES.md)
+
+You may have to open a new terminal for it to be in the path.
 
 ### icecast2 set up
 
