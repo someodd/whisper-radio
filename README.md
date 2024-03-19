@@ -63,15 +63,28 @@ sudo systemctl enable icecast2
 
 I RECOMMEND YOU USE LOW LOW LOW MP3 STREAMING SETTINGS, MONO ETC
 
-### Run the script for first time + send with ezstream
+## Copy the repo
+
+```
+git clone https://github.com/someodd/whisper-radio
+cd whisper-radio
+```
+
+## Run the script for first time + send with ezstream
 
 ```
 ./whisper.sh
 ```
 
-### Actually crontab the whole thing...
+## Crontab
 
-How often to poll or
+How often to poll or...
+
+Use `crontab -e`, run every five minutes and log:
+
+```
+*/5 * * * * /path/to/whisper.sh > /path/to/logfile 2>&1
+```
 
 ### Troubleshooting
 

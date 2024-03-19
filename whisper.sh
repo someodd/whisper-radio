@@ -4,12 +4,13 @@
 set -e
 
 # Constants
-TEXT_DIR="./text" # Default directory containing text files
-MOTD_FILE="./motd.txt" # Path to your MOTD file
+PROJECT_ROOT="/home/you/"
+TEXT_DIR="${PROJECT_ROOT}/text" # Default directory containing text files
+MOTD_FILE="${PROJECT_ROOT}/motd.txt" # Path to your MOTD file
 RSS_FEED_URL="https://planet.debian.org/rss20.xml" # URL of the RSS feed
 WEATHER_COMMAND=$(metar -d NZSP | tail -n +2)
-AUDIO_DIR="./audio" # Default directory with MP3 files for music
-OUTPUT_DIR="./output" # Output directory. I feel like it should go in /tmp or something.
+AUDIO_DIR="${PROJECT_ROOT}/audio" # Default directory with MP3 files for music
+OUTPUT_DIR="${PROJECT_ROOT}/output" # Output directory. I feel like it should go in /tmp or something.
 
 
 # FIXME: it's important that the AR, AC, and AB all match up 
@@ -19,10 +20,10 @@ piper_tts() {
   echo "piper tts"
   local input_text="$1"
   local output_file="$2"
-  local temp_wav="$(mktemp).wav" # Creates a temporary WAV file
+  local temp_wav="${PROJECT_ROOT}/$(mktemp).wav" # Creates a temporary WAV file
 
   # Use piper to generate the WAV file
-  echo "$input_text" | piper --model en_US-hfc_female-medium.onnx --output_file "$temp_wav"
+  echo "$input_text" | piper --model "${PROJECT_ROOT}/en_US-hfc_female-medium.onnx" --output_file "$temp_wav"
 
   # Use ffmpeg to convert the WAV file to an MP3 file
   ffmpeg -i "$temp_wav" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
@@ -32,8 +33,8 @@ piper_tts() {
 }
 
 
-MAIN_PLAYLIST="./playlist-main.m3u"
-PENDING_PLAYLIST="./playlist-pending.m3u"
+MAIN_PLAYLIST="${PROJECT_ROOT}/playlist-main.m3u"
+PENDING_PLAYLIST="${PROJECT_ROOT}/playlist-pending.m3u"
 
 # HAVE A COMMAND FOR SETTING FFMPEG BITRATES ETC AND OUTPUT, JUST ONE COMMAND OR WHATEVER FIXME
 
