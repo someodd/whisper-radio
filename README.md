@@ -54,3 +54,8 @@ I RECOMMEND YOU USE LOW LOW LOW MP3 STREAMING SETTINGS, MONO ETC
 ### Actually crontab the whole thing...
 
 How often to poll or
+
+### Troubleshooting
+
+I had this problem where I thought the project was broken but I restarted
+computer and it works again. careful how kill ezstream maybe.

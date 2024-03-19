@@ -24,70 +24,137 @@ PENDING_PLAYLIST="./playlist-pending.m3u"
 # Recreate the output dir
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
+touch "$MAIN_PLAYLIST"
+rm -f "$PENDING_PLAYLIST"
+touch "$PENDING_PLAYLIST"
 
 # Prepare espeak command with specified settings
 ESPEAK_COMMAND="espeak -v $ESPEAK_VOICE -a $ESPEAK_VOLUME -s $ESPEAK_SPEED"
 
-# Fetch the latest headline from an RSS feed
-LATEST_HEADLINE=$(curl -s "$RSS_FEED_URL" | grep -o '<title>[^<]*' | head -2 | tail -1 | sed 's/<title>//')
+get_gopher() {
+    thread=$(curl gopher://gopher.someodd.zip:7070/ | awk '/^0View as File/ {getline; sub(/./, "", $0); sub(/\t.*/, "", $0); print; exit}')
+    echo "Time to talk about gopherspace. Do you know about the Gopher Protocol? The freshest thread on gopher.someodd.zip port 7070 reads as follows: $thread"
+}
 
-# Fetch weather data for Antarctica
-WEATHER_DATA=$(curl -s "${WEATHER_API_URL}?key=${WEATHER_API_KEY}&q=${WEATHER_LOCATION}&aqi=no")
+get_the_news() {
+    # Fetch the latest headline from an RSS feed
+    headline=$(curl -s "$RSS_FEED_URL" | grep -o '<title>[^<]*' | head -2 | tail -1 | sed 's/<title>//')
+    echo "It's time for the news. Latest headline is: $headline"
+}
 
-# Extract relevant parts of the weather data
-WEATHER_CONDITION=$(echo $WEATHER_DATA | jq -r '.current.condition.text')
-TEMPERATURE=$(echo $WEATHER_DATA | jq -r '.current.temp_c')
+get_the_weather() {
+    # Fetch weather data for Antarctica
+    WEATHER_DATA=$(curl -s "${WEATHER_API_URL}?key=${WEATHER_API_KEY}&q=${WEATHER_LOCATION}&aqi=no")
+    # Extract relevant parts of the weather data
+    WEATHER_CONDITION=$(echo $WEATHER_DATA | jq -r '.current.condition.text')
+    TEMPERATURE=$(echo $WEATHER_DATA | jq -r '.current.temp_c')
+    echo "Time for the weather. Weather in Antarctica: $WEATHER_CONDITION with a temperature of $TEMPERATURE."
+}
 
-# Prepare text for espeak
-ESPEAK_TEXT="Latest headline is: $LATEST_HEADLINE. Weather in Antarctica: $WEATHER_CONDITION with a temperature of $TEMPERATURE."
+output_gopher() {
+    echo "Gopher"
+    $ESPEAK_COMMAND "$(get_gopher)" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/gopher_output.mp3"
+}
 
-# Read and convert the MOTD file to speech
-echo "The MOTD"
-$ESPEAK_COMMAND -f "$MOTD_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/motd_output.mp3"
+output_summary() {
+    # Use espeak for TTS, save output to a file for the prepared text
+    echo "The summary"
+    SUMMARY="$(get_the_news) $(get_the_weather)"
+    $ESPEAK_COMMAND "$SUMMARY" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/summary_output.mp3"
+}
 
-# Use espeak for TTS, save output to a file for the prepared text
-echo "The summary"
-$ESPEAK_COMMAND "$ESPEAK_TEXT" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/espeak_output.mp3"
+output_motd() {
+    # Read and convert the MOTD file to speech
+    echo "The MOTD"
+    $ESPEAK_COMMAND -f "$MOTD_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/motd_output.mp3"
+}
 
-# Randomly select a text file and use espeak to read it
-echo "random text file"
-RANDOM_TEXT_FILE=$(find "$TEXT_DIR" -type f | shuf -n 1)
-$ESPEAK_COMMAND -f "$RANDOM_TEXT_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/random_text_output.mp3"
+output_random_text_file() {
+    # Randomly select a text file and use espeak to read it
+    echo "random text file"
+    RANDOM_TEXT_FILE=$(find "$TEXT_DIR" -type f | shuf -n 1)
+    $ESPEAK_COMMAND -f "$RANDOM_TEXT_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/random_text_output.mp3"
+}
 
-# Select a random song from the audio directory
-echo "random song file"
-RANDOM_SONG=$(find "$AUDIO_DIR" -type f | shuf -n 1)
+output_random_audio_file() {
+    # Select a random song from the audio directory
+    echo "random song file"
+    RANDOM_SONG=$(find "$AUDIO_DIR" -type f | shuf -n 1)
+    # Create a symbolic link to the random song in the output directory
+    #ln -s "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
+    cp "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
+}
 
-# Create a symbolic link to the random song in the output directory
-ln -s "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
 
-# Ezstream XML configuration file needs to be set up to play espeak_output.mp3, motd_output.mp3, random_text_output.mp3, and RANDOM_SONG in sequence
+output_motd
 
-final_output_dir="./output-final/"
-mkdir -p "${final_output_dir}"
+output_summary
 
-# Iterate over all files in the output directory
-for file in "$OUTPUT_DIR"/*.mp3; do
-    # Check if the file is an MP3 file
-    if [ -f "$file" ]; then
-        # Generate a SHA-256 hash of the file
-        hash=$(sha256sum "$file" | cut -d ' ' -f 1)
-        
-        # Extract the filename and extension
-        filename=$(basename "$file")
-        extension="${filename##*.}"
-        filename="${filename%.*}"
+output_gopher
 
-        # Rename the file to include the hash in its filename
-	new_filename="$OUTPUT_DIR/${filename}_${hash}.${extension}"
-        mv "$file" "$new_filename"
-	echo "$new_filename" >> $PENDING_PLAYLIST
-    fi
-done
+output_random_text_file
 
-# Placeholder for stream configuration
-echo "Prepared to stream: $ESPEAK_TEXT, then MOTD from $MOTD_FILE, content from $RANDOM_TEXT_FILE, followed by music from $RANDOM_SONG"
-# Build new temp playlist
+output_random_audio_file
+
+# For all the MP3s outputted to the $OUTPUT_DIR rename them so their filename
+# includes their own sum and also move them to the final directory.
+#
+# The files get sum in their name as a means of checking if the playlist
+# actually has changed in content.
+tag_outputs() {
+    # Iterate over all files in the output directory
+    for file in "$OUTPUT_DIR"/*.mp3; do
+        # Check if the file is an MP3 file
+        if [ -f "$file" ]; then
+            # Generate a SHA-256 hash of the file
+            hash=$(sha256sum "$file" | cut -d ' ' -f 1)
+            
+            # Extract the filename and extension
+            filename=$(basename "$file")
+            extension="${filename##*.}"
+            filename="${filename%.*}"
+
+            # Rename the file to include the hash in its filename
+            new_filename="$OUTPUT_DIR/${filename}_${hash}.${extension}"
+            mv "$file" "$new_filename"
+
+	    absolute_path=$(realpath "$new_filename")
+	    echo "$absolute_path" >> "$PENDING_PLAYLIST"
+        fi
+    done
+}
+
+tag_outputs
+
+remove_files_not_in_playlist() {
+	# Path to your M3U playlist
+	playlist="$MAIN_PLAYLIST"
+
+	# Directory containing your media files
+	media_dir="$OUTPUT_DIR"
+
+	# Temporary file to store the list of files to keep
+	keep_file=$(realpath "./keep.tmp")
+
+	# Make sure the temporary file doesn't exist before starting
+	rm -f "$keep_file"
+
+	# Extract filenames from the M3U playlist and store them in keep_file
+	grep -v '^#' "$playlist" | sed 's/.*\///' > "$keep_file"
+
+	# Change to the media directory
+	cd "$media_dir" || exit
+
+	# List all files in the media directory, compare with keep_file, and delete unmatched files
+	find . -type f | sed 's/.\///' | grep -v -F -f "$keep_file" | while read -r line; do
+	    echo "Deleting: $line"
+	    # Uncomment the next line to actually delete the files
+	    rm "$line"
+	done
+
+	# Clean up: Remove the temporary keep_file
+	rm -f "$keep_file"
+}
 
 # Function to manage EZStream based on playlist comparison
 manage_ezstream() {
@@ -106,7 +173,7 @@ manage_ezstream() {
 	    mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
             # Find EZStream's PID and send SIGHUP to force config reload
             pkill -HUP -f "$EZSTREAM_CMD"
-
+            remove_files_not_in_playlist
             # Optionally, update MAIN_PLAYLIST to reflect the changes
             #cp "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
         else
@@ -115,7 +182,4 @@ manage_ezstream() {
     fi
 }
 
-# ezstream here...
-# could even generate an m3u?
-# check if there's a difference between main and temp. if there is, replace!
 manage_ezstream

@@ -19,6 +19,7 @@
     <intake>
       <filename>/home/tilde/Projects/whisper-radio/playlist-main.m3u</filename>
       <stream_once>0</stream_once>
+      <shuffle>No</shuffle>
     </intake>
   </intakes>
 
