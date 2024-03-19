@@ -20,7 +20,7 @@ piper_tts() {
   echo "piper tts"
   local input_text="$1"
   local output_file="$2"
-  local temp_wav="${PROJECT_ROOT}/$(mktemp).wav" # Creates a temporary WAV file
+  local temp_wav="$(mktemp).wav" # Creates a temporary WAV file
 
   # Use piper to generate the WAV file
   echo "$input_text" | piper --model "${PROJECT_ROOT}/en_US-hfc_female-medium.onnx" --output_file "$temp_wav"
@@ -163,7 +163,7 @@ remove_files_not_in_playlist() {
 	media_dir="$OUTPUT_DIR"
 
 	# Temporary file to store the list of files to keep
-	keep_file=$(realpath "./keep.tmp")
+	keep_file="${OUTPUT_DIR}/keep.tmp"
 
 	# Make sure the temporary file doesn't exist before starting
 	rm -f "$keep_file"
