@@ -1,16 +1,21 @@
 # Whisper Radio
 
-IceCast radio station of a TTS (espeak) reading off, hopefully soon:
+IceCast radio station of a TTS (espeak) reading off:
 
-  * Random text files
-  * RSS headlines
-  * Weather data
-  * Random music files
-  * Read something via gopher? I want to have it read the latest thread on gopherden!
-  * Random Internet Archive public domain music, radio broadcasts (?)
+  * Random text file
+  * RSS headline
+  * Weather data (METAR)
+  * Random music file
+  * Reads the "freshest" thread on gopherden (gopher://gopher.someodd.zip:7070/)
   * MOTD: a message you want to consistently be read
 
 "Whisper" is a reference to the espeak voice or whatever used.
+
+Please also see [the showcase post I made about this on my blog](https://www.someodd.zip/showcase/whisper-radio).
+
+You can also listen to the official radio station by pointing a media plalyer
+like audacious (lots of browsers may have issues with plain HTTP these days) to
+http://radio.someodd.zip:8000/stream
 
 ## Dependencies
 
