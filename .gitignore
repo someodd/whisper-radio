@@ -1,3 +1,5 @@
 output/
 output-final/
 playlist-*.m3u
+*.swp
+*.onnx*

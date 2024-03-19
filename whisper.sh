@@ -7,19 +7,35 @@ set -e
 TEXT_DIR="./text" # Default directory containing text files
 MOTD_FILE="./motd.txt" # Path to your MOTD file
 RSS_FEED_URL="https://planet.debian.org/rss20.xml" # URL of the RSS feed
-WEATHER_API_URL="http://api.weatherapi.com/v1/current.json" # URL of the weather API
-WEATHER_API_KEY="your_api_key" # API key for the weather service
-WEATHER_LOCATION="-75.250973,0.071389" # Coordinates for a location in Antarctica
+WEATHER_COMMAND=$(metar -d NZSP | tail -n +2)
 AUDIO_DIR="./audio" # Default directory with MP3 files for music
 OUTPUT_DIR="./output" # Output directory. I feel like it should go in /tmp or something.
-ESPEAK_VOICE="en-us+whisper" # Voice setting for espeak
-ESPEAK_VOLUME="200" # Volume setting for espeak (0-200)
-ESPEAK_SPEED="130" # Speed setting for espeak (80-500)
-FFMPEG_AUDIO_SAMPLING_RATE="22050"
-FFMPEG_AUDIO_CHANNELS="1"
-FFMPEG_AUDIO_BITRATE="64k"
+
+
+# FIXME: it's important that the AR, AC, and AB all match up 
+
+# Other host, used for longer stuff.
+piper_tts() {
+  echo "piper tts"
+  local input_text="$1"
+  local output_file="$2"
+  local temp_wav="$(mktemp).wav" # Creates a temporary WAV file
+
+  # Use piper to generate the WAV file
+  echo "$input_text" | piper --model en_US-hfc_female-medium.onnx --output_file "$temp_wav"
+
+  # Use ffmpeg to convert the WAV file to an MP3 file
+  ffmpeg -i "$temp_wav" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
+
+  # Delete the temporary WAV file
+  rm "$temp_wav"
+}
+
+
 MAIN_PLAYLIST="./playlist-main.m3u"
 PENDING_PLAYLIST="./playlist-pending.m3u"
+
+# HAVE A COMMAND FOR SETTING FFMPEG BITRATES ETC AND OUTPUT, JUST ONE COMMAND OR WHATEVER FIXME
 
 # Recreate the output dir
 rm -rf "$OUTPUT_DIR"
@@ -29,7 +45,22 @@ rm -f "$PENDING_PLAYLIST"
 touch "$PENDING_PLAYLIST"
 
 # Prepare espeak command with specified settings
-ESPEAK_COMMAND="espeak -v $ESPEAK_VOICE -a $ESPEAK_VOLUME -s $ESPEAK_SPEED"
+whisper_tts() {
+	ESPEAK_VOICE="en-us+whisper" # Voice setting for espeak
+	ESPEAK_VOLUME="200" # Volume setting for espeak (0-200)
+	ESPEAK_SPEED="130" # Speed setting for espeak (80-500)
+	ESPEAK_COMMAND="espeak -v $ESPEAK_VOICE -a $ESPEAK_VOLUME -s $ESPEAK_SPEED"
+
+	FFMPEG_AUDIO_SAMPLING_RATE="22050"
+	FFMPEG_AUDIO_CHANNELS="1"
+	FFMPEG_AUDIO_BITRATE="64k"
+
+	local input_text="$1"
+	local output_file="$2"
+
+	$ESPEAK_COMMAND "$input_text" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
+
+}
 
 get_gopher() {
     thread=$(curl gopher://gopher.someodd.zip:7070/ | awk '/^0View as File/ {getline; sub(/./, "", $0); sub(/\t.*/, "", $0); print; exit}')
@@ -44,45 +75,42 @@ get_the_news() {
 
 get_the_weather() {
     # Fetch weather data for Antarctica
-    WEATHER_DATA=$(curl -s "${WEATHER_API_URL}?key=${WEATHER_API_KEY}&q=${WEATHER_LOCATION}&aqi=no")
-    # Extract relevant parts of the weather data
-    WEATHER_CONDITION=$(echo $WEATHER_DATA | jq -r '.current.condition.text')
-    TEMPERATURE=$(echo $WEATHER_DATA | jq -r '.current.temp_c')
-    echo "Time for the weather. Weather in Antarctica: $WEATHER_CONDITION with a temperature of $TEMPERATURE."
+    echo "Time for the weather. Information from a METAR station in Antarctica: $WEATHER_COMMAND"
 }
 
 output_gopher() {
     echo "Gopher"
-    $ESPEAK_COMMAND "$(get_gopher)" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/gopher_output.mp3"
+    piper_tts "$(get_gopher)" "gopher"
 }
 
 output_summary() {
     # Use espeak for TTS, save output to a file for the prepared text
     echo "The summary"
     SUMMARY="$(get_the_news) $(get_the_weather)"
-    $ESPEAK_COMMAND "$SUMMARY" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/summary_output.mp3"
+    whisper_tts "$SUMMARY" "news_weather"
 }
 
 output_motd() {
     # Read and convert the MOTD file to speech
     echo "The MOTD"
-    $ESPEAK_COMMAND -f "$MOTD_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/motd_output.mp3"
+    whisper_tts "$(cat ${MOTD_FILE})" "motd"
 }
 
 output_random_text_file() {
     # Randomly select a text file and use espeak to read it
     echo "random text file"
     RANDOM_TEXT_FILE=$(find "$TEXT_DIR" -type f | shuf -n 1)
-    $ESPEAK_COMMAND -f "$RANDOM_TEXT_FILE" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/random_text_output.mp3"
+    piper_tts "$(cat ${RANDOM_TEXT_FILE})" "random_text_file"
 }
 
+# Uses FFMPEG to ensure consistent sample rate and the sort, I guess
 output_random_audio_file() {
     # Select a random song from the audio directory
     echo "random song file"
     RANDOM_SONG=$(find "$AUDIO_DIR" -type f | shuf -n 1)
     # Create a symbolic link to the random song in the output directory
     #ln -s "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
-    cp "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
+    ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
 }
 
 

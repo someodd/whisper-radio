@@ -19,6 +19,13 @@ IceCast radio station of a TTS (espeak) reading off, hopefully soon:
   * curl
   * ezstream
   * icecast2
+  * metar
+  * piper-tts
+  * ffmpeg
+
+### piper-tts setup
+
+pipx
 
 ### icecast2 set up
 
