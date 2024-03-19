@@ -1,0 +1,26 @@
+<ezstream>
+
+  <servers>
+    <server>
+      <hostname>127.0.0.1</hostname>
+      <port>8000</port>
+      <password>hackme</password>
+    </server>
+  </servers>
+
+  <streams>
+    <stream>
+      <mountpoint>/stream</mountpoint>
+      <format>MP3</format>
+    </stream>
+  </streams>
+
+  <intakes>
+    <intake>
+      <filename>/home/tilde/Projects/whisper-radio/playlist-main.m3u</filename>
+      <stream_once>0</stream_once>
+    </intake>
+  </intakes>
+
+</ezstream>
+
