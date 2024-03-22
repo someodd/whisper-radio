@@ -257,7 +257,7 @@ remove_files_not_in_playlist() {
 # 1. If EZStream is not running, start it.
 # 2. If the main and pending playlists are different, reload EZStream
 manage_ezstream() {
-    local EZSTREAM_CMD="ezstream -c ./ezstream.xml"
+    local EZSTREAM_CMD="ezstream -c '${PROJECT_ROOT}/ezstream.xml'"
 
     # Check if EZStream is running. It should always be running.
     if ! pgrep -f "$EZSTREAM_CMD" > /dev/null; then
