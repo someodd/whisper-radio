@@ -3,6 +3,7 @@
 # Stop on error
 set -e
 
+# Do not have any spaces, also escape special characters!
 PROJECT_ROOT="/path/to/whisper-radio"
 TEXT_DIR="${PROJECT_ROOT}/text" # Default directory containing text files
 MOTD_FILE="${PROJECT_ROOT}/motd.txt" # Path to your MOTD file
