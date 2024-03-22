@@ -1,0 +1,27 @@
+The following text is from the "origins" section on Wikipedia's page on the
+Gopher Protocol:
+
+The Gopher system was released in mid-1991 by Mark P. McCahill, Farhad
+Anklesaria, Paul Lindner, Daniel Torrey, and Bob Alberti of the University of
+Minnesota in the United States. Its central goals were, as stated in RFC 1436:
+
+  * A file-like hierarchical arrangement that would be familiar to users.
+  * A simple syntax.
+  * A system that can be created quickly and inexpensively.
+  * Extensibility of the file system metaphor; allowing addition of searches for example.
+
+Gopher combines document hierarchies with collections of services, including
+WAIS, the Archie and Veronica search engines, and gateways to other information
+systems such as File Transfer Protocol (FTP) and Usenet.
+
+The general interest in campus-wide information systems (CWISs) in higher
+education at the time, and the ease of setup of Gopher servers to create an
+instant CWIS with links to other sites' online directories and resources, were
+the factors contributing to Gopher's rapid adoption.
+
+The name was coined by Anklesaria as a play on several meanings of the word
+"gopher". The University of Minnesota mascot is the gopher,[8] a gofer is an
+assistant who "goes for" things, and a gopher burrows through the ground to
+reach a desired location.
+
+End of excerpt.

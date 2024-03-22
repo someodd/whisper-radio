@@ -17,10 +17,24 @@ You can also listen to the official radio station by pointing a media plalyer
 like audacious (lots of browsers may have issues with plain HTTP these days) to
 http://radio.someodd.zip:8000/stream
 
+Be sure to do this then edit the files before you begin:
+
+```
+cp ezstream.example.xml ezstream.xml
+cp config.example.sh config.sh
+```
+
+## Included examples
+
+  * Poetry by Emily Dickinson
+  * Hacker Manifesto from Phrak Magazine
+  * Some poem reading I found on Internet Archive
+
 ## Dependencies
 
   * espeak
   * jq
+  * xmlstarlet
   * curl
   * ezstream
   * icecast2

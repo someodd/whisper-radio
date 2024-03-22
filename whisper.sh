@@ -3,14 +3,12 @@
 # Stop on error
 set -e
 
-# Constants
-PROJECT_ROOT="/home/you/"
-TEXT_DIR="${PROJECT_ROOT}/text" # Default directory containing text files
-MOTD_FILE="${PROJECT_ROOT}/motd.txt" # Path to your MOTD file
-RSS_FEED_URL="https://planet.debian.org/rss20.xml" # URL of the RSS feed
-WEATHER_COMMAND=$(metar -d NZSP | tail -n +2)
-AUDIO_DIR="${PROJECT_ROOT}/audio" # Default directory with MP3 files for music
-OUTPUT_DIR="${PROJECT_ROOT}/output" # Output directory. I feel like it should go in /tmp or something.
+# Source the configuration
+source ./config.sh
+
+
+# For chron, mostly
+echo "$(date)"
 
 
 # FIXME: it's important that the AR, AC, and AB all match up 
@@ -23,7 +21,7 @@ piper_tts() {
   local temp_wav="$(mktemp).wav" # Creates a temporary WAV file
 
   # Use piper to generate the WAV file
-  echo "$input_text" | piper --model "${PROJECT_ROOT}/en_US-hfc_female-medium.onnx" --output_file "$temp_wav"
+  echo "$input_text" | piper --model "${PROJECT_ROOT}/en_US-hfc_female-medium.onnx" --sentence-silence 1.2 --output_file "$temp_wav"
 
   # Use ffmpeg to convert the WAV file to an MP3 file
   ffmpeg -i "$temp_wav" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
@@ -31,10 +29,6 @@ piper_tts() {
   # Delete the temporary WAV file
   rm "$temp_wav"
 }
-
-
-MAIN_PLAYLIST="${PROJECT_ROOT}/playlist-main.m3u"
-PENDING_PLAYLIST="${PROJECT_ROOT}/playlist-pending.m3u"
 
 # HAVE A COMMAND FOR SETTING FFMPEG BITRATES ETC AND OUTPUT, JUST ONE COMMAND OR WHATEVER FIXME
 
@@ -47,7 +41,7 @@ touch "$PENDING_PLAYLIST"
 
 # Prepare espeak command with specified settings
 whisper_tts() {
-	ESPEAK_VOICE="en-us+whisper" # Voice setting for espeak
+    ESPEAK_VOICE="en-us+whisper" # Voice setting for espeak
 	ESPEAK_VOLUME="200" # Volume setting for espeak (0-200)
 	ESPEAK_SPEED="130" # Speed setting for espeak (80-500)
 	ESPEAK_COMMAND="espeak -v $ESPEAK_VOICE -a $ESPEAK_VOLUME -s $ESPEAK_SPEED"
@@ -57,10 +51,9 @@ whisper_tts() {
 	FFMPEG_AUDIO_BITRATE="64k"
 
 	local input_text="$1"
-	local output_file="$2"
+    local output_file="$2"
 
 	$ESPEAK_COMMAND "$input_text" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
-
 }
 
 get_gopher() {
@@ -68,15 +61,62 @@ get_gopher() {
     echo "Time to talk about gopherspace. Do you know about the Gopher Protocol? The freshest thread on gopher.someodd.zip port 7070 reads as follows: $thread"
 }
 
+readable_date() {
+	# Get day, month, and year
+	day=$(date +%d)
+	month=$(date +%B)
+	year=$(date +%Y)
+	weekday=$(date +%A)
+
+	# Determine the suffix for the day
+	if (( day == 1 || day == 21 || day == 31 )); then
+	  suffix="st"
+	elif (( day == 2 || day == 22 )); then
+	  suffix="nd"
+	elif (( day == 3 || day == 23 )); then
+	  suffix="rd"
+	else
+	  suffix="th"
+	fi
+
+	# Remove leading zero from day if present
+	day=$(echo $day | sed 's/^0*//')
+
+	# Combine to form friendly date
+	echo "$weekday the $day$suffix of $month, $year."
+}
+
+fetch_feed() {
+    local feed_url="$1"
+    
+    # Fetch the feed content
+    feed_content="$(curl -s "$feed_url")"
+    
+    # Parse the feed content using xmlstarlet
+    # Adjust the parsing to extract text from the first <title> within an <item> or <entry>
+    latest_headline=$(echo "$feed_content" | xmlstarlet sel -N atom="http://www.w3.org/2005/Atom" -t -m '//item/title | //atom:entry/atom:title' -v '.' -n | head -1)
+
+    # Output the latest headline
+    echo "$latest_headline"
+}
+
 get_the_news() {
-    # Fetch the latest headline from an RSS feed
-    headline=$(curl -s "$RSS_FEED_URL" | grep -o '<title>[^<]*' | head -2 | tail -1 | sed 's/<title>//')
-    echo "It's time for the news. Latest headline is: $headline"
+    echo "Hello and welcome to the rapid-fire headline segment on Whisper Radio. The date is $(readable_date). Let's read some headlines."
+    echo "Latest article on someodd's personal blog: $(fetch_feed 'https://www.someodd.zip/feed.xml'). "
+    echo "..."
+    echo "Some OpenAI news: $(fetch_feed 'https://openai.com/blog/rss.xml'). "
+    echo "..."
+    echo "CGTN world news: $(fetch_feed 'https://www.cgtn.com/subscribe/rss/section/world.xml'). "
+    echo "..."
+    echo "New York Times headline reads: $(fetch_feed 'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'). "
+    echo "..."
+    echo "And now a Planet Debian update: $(fetch_feed 'https://planet.debian.org/rss20.xml'). "
+    echo "This concludes the headlines segment. Stay tuned for more content."
 }
 
 get_the_weather() {
     # Fetch weather data for Antarctica
-    echo "Time for the weather. Information from a METAR station in Antarctica: $WEATHER_COMMAND"
+    echo "Time for the weather. Information from a METAR station in Antarctica. $WEATHER_COMMAND"
 }
 
 output_gopher() {
@@ -84,11 +124,12 @@ output_gopher() {
     piper_tts "$(get_gopher)" "gopher"
 }
 
-output_summary() {
-    # Use espeak for TTS, save output to a file for the prepared text
-    echo "The summary"
-    SUMMARY="$(get_the_news) $(get_the_weather)"
-    whisper_tts "$SUMMARY" "news_weather"
+output_news() {
+    piper_tts "$(get_the_news)" "news"
+}
+
+output_weather() {
+    whisper_tts "$(get_the_weather)" "weather"
 }
 
 output_motd() {
@@ -97,27 +138,49 @@ output_motd() {
     whisper_tts "$(cat ${MOTD_FILE})" "motd"
 }
 
+get_random_text_file() {
+	echo "Time for Text. In this segment a piece of text is read. Let's begin."
+	RANDOM_TEXT_FILE=$(find "$TEXT_DIR" -type f | shuf -n 1)
+	echo "$(cat ${RANDOM_TEXT_FILE})"
+}
+
 output_random_text_file() {
     # Randomly select a text file and use espeak to read it
     echo "random text file"
-    RANDOM_TEXT_FILE=$(find "$TEXT_DIR" -type f | shuf -n 1)
-    piper_tts "$(cat ${RANDOM_TEXT_FILE})" "random_text_file"
+    piper_tts "$(get_random_text_file)" "random_text_file"
 }
 
-# Uses FFMPEG to ensure consistent sample rate and the sort, I guess
+# Uses FFMPEG to ensure consistent sample rate and the sort, I guess.
+#
+# I could instead use mktemp.
 output_random_audio_file() {
     # Select a random song from the audio directory
-    echo "random song file"
     RANDOM_SONG=$(find "$AUDIO_DIR" -type f | shuf -n 1)
-    # Create a symbolic link to the random song in the output directory
-    #ln -s "$RANDOM_SONG" "${OUTPUT_DIR}/random_song.mp3"
-    ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
-}
+    
+    # Extract title and artist separately
+    TITLE=$(ffprobe -loglevel error -show_entries format_tags=title -of default=noprint_wrappers=1:nokey=1 "$RANDOM_SONG")
+    ARTIST=$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 "$RANDOM_SONG")
 
+    # Concatenate title and artist in the format "Title by Artist"
+    METADATA="${TITLE} by ${ARTIST}"
+
+    # If metadata is found, use espeak to convert the metadata to speech
+    if [ -n "$TITLE" ]; then
+        whisper_tts "Welcome to the audio segment of the program. Now let's play: $METADATA" "metadata"
+        # Concatenate the speech audio file with the song file
+        ffmpeg -i "concat:${OUTPUT_DIR}/metadata.mp3|$RANDOM_SONG" -c copy "${OUTPUT_DIR}/random_song.mp3"
+        rm "${OUTPUT_DIR}/metadata.mp3"
+    else
+        # If no metadata is found, just output the song file
+        ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
+    fi
+}
 
 output_motd
 
-output_summary
+output_news
+
+output_weather
 
 output_gopher
 
@@ -186,27 +249,31 @@ remove_files_not_in_playlist() {
 }
 
 # Function to manage EZStream based on playlist comparison
+#
+# Basically, two things can happen:
+# 1. If EZStream is not running, start it.
+# 2. If the main and pending playlists are different, reload EZStream
 manage_ezstream() {
     local EZSTREAM_CMD="ezstream -c ./ezstream.xml"
 
-    # Check if EZStream is running
+    # Check if EZStream is running. It should always be running.
     if ! pgrep -f "$EZSTREAM_CMD" > /dev/null; then
         echo "EZStream is not running. Starting EZStream..."
+        mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
         nohup $EZSTREAM_CMD &>/dev/null &
-    else
+    else 
         echo "EZStream is running."
 
         # Compare the main and pending playlists
         if ! cmp -s "$MAIN_PLAYLIST" "$PENDING_PLAYLIST"; then
             echo "Playlists are different. Reloading EZStream..."
-	    mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
+            mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
             # Find EZStream's PID and send SIGHUP to force config reload
             pkill -HUP -f "$EZSTREAM_CMD"
             remove_files_not_in_playlist
-            # Optionally, update MAIN_PLAYLIST to reflect the changes
-            #cp "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
         else
             echo "Playlists are the same. No action needed."
+            rm "$PENDING_PLAYLIST"
         fi
     fi
 }
