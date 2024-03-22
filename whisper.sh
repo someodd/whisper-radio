@@ -3,8 +3,11 @@
 # Stop on error
 set -e
 
+# Get the script's own directory
+SCRIPT_DIR=$(dirname "$0")
+
 # Source the configuration
-source ./config.sh
+source "${SCRIPT_DIR}/config.sh"
 
 
 # For chron, mostly
