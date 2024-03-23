@@ -167,12 +167,22 @@ output_random_audio_file() {
     # Concatenate title and artist in the format "Title by Artist"
     METADATA="${TITLE} by ${ARTIST}"
 
+    # Prepare a file list for ffmpeg concat demuxer
+    FILE_LIST_PATH="${OUTPUT_DIR}/file_list.txt"
+
     # If metadata is found, use espeak to convert the metadata to speech
     if [ -n "$TITLE" ]; then
         whisper_tts "Welcome to the audio segment of the program. Now let's play: $METADATA" "metadata"
-        # Concatenate the speech audio file with the song file
-        ffmpeg -i "concat:${OUTPUT_DIR}/metadata.mp3|$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
-        rm "${OUTPUT_DIR}/metadata.mp3"
+
+        # Create a file list for concatenation
+        echo "file '${OUTPUT_DIR}/metadata.mp3'" > "$FILE_LIST_PATH"
+        echo "file '$RANDOM_SONG'" >> "$FILE_LIST_PATH"
+
+        # Concatenate the speech audio file with the song file using the file list
+        ffmpeg -f concat -safe 0 -i "$FILE_LIST_PATH" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
+
+        # Clean up the temporary files
+        rm "${OUTPUT_DIR}/metadata.mp3" "$FILE_LIST_PATH"
     else
         # If no metadata is found, just output the song file
         ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
