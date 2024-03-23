@@ -269,10 +269,10 @@ manage_ezstream() {
         # Compare the main and pending playlists
         if ! cmp -s "$MAIN_PLAYLIST" "$PENDING_PLAYLIST"; then
             echo "Playlists are different. Reloading EZStream..."
+	    remove_files_not_in_playlist
             mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
             # Find EZStream's PID and send SIGHUP to force config reload
             pkill -HUP -f "$EZSTREAM_CMD"
-            remove_files_not_in_playlist
         else
             echo "Playlists are the same. No action needed."
             rm "$PENDING_PLAYLIST"
