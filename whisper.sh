@@ -171,7 +171,7 @@ output_random_audio_file() {
     if [ -n "$TITLE" ]; then
         whisper_tts "Welcome to the audio segment of the program. Now let's play: $METADATA" "metadata"
         # Concatenate the speech audio file with the song file
-        ffmpeg -i "concat:${OUTPUT_DIR}/metadata.mp3|$RANDOM_SONG" -c copy "${OUTPUT_DIR}/random_song.mp3"
+        ffmpeg -i "concat:${OUTPUT_DIR}/metadata.mp3|$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
         rm "${OUTPUT_DIR}/metadata.mp3"
     else
         # If no metadata is found, just output the song file
