@@ -1,3 +1,7 @@
+"Thinking of it like that, a method of easily serving directories
+of data, rather than a scaled down web makes the whole thing more
+appealing I think." -- Quote attributed to Rob Sayers
+
 The following text is from the "origins" section on Wikipedia's page on the
 Gopher Protocol:
 

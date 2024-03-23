@@ -231,34 +231,22 @@ tag_outputs() {
 
 tag_outputs
 
+# I'm keeping the old playlist too because, I think, if you send HUP signal to ezsstream, it'll keep trying
+# to play the old playlist for a bit, so we can keep it around for transitional purposes, just in case.
 remove_files_not_in_playlist() {
-	# Path to your M3U playlist
-	playlist="$MAIN_PLAYLIST"
+    # Join MAIN_PLAYLIST and PENDING_PLAYLIST with newline
+    PLAYLISTS=$(echo -e "${MAIN_PLAYLIST}\n${PENDING_PLAYLIST}")
 
-	# Directory containing your media files
-	media_dir="$OUTPUT_DIR"
+    # Convert playlists to array
+    IFS=$'\n' read -r -d '' -a PLAYLIST_ARRAY <<< "$PLAYLISTS"
 
-	# Temporary file to store the list of files to keep
-	keep_file="${OUTPUT_DIR}/keep.tmp"
-
-	# Make sure the temporary file doesn't exist before starting
-	rm -f "$keep_file"
-
-	# Extract filenames from the M3U playlist and store them in keep_file
-	grep -v '^#' "$playlist" | sed 's/.*\///' > "$keep_file"
-
-	# Change to the media directory
-	cd "$media_dir" || exit
-
-	# List all files in the media directory, compare with keep_file, and delete unmatched files
-	find . -type f | sed 's/.\///' | grep -v -F -f "$keep_file" | while read -r line; do
-	    echo "Deleting: $line"
-	    # Uncomment the next line to actually delete the files
-	    rm "$line"
-	done
-
-	# Clean up: Remove the temporary keep_file
-	rm -f "$keep_file"
+    # Loop over all files in the output directory
+    for file in "${OUTPUT_DIR}"/*; do
+        # If the file is not in the playlists, remove it
+        if ! printf '%s\n' "${PLAYLIST_ARRAY[@]}" | grep -qF "$(basename "$file")"; then
+            rm "$file"
+        fi
+    done
 }
 
 # Function to manage EZStream based on playlist comparison
