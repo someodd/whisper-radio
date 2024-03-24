@@ -11,11 +11,9 @@ IceCast radio station of a TTS (espeak) reading off:
 
 "Whisper" is a reference to the espeak voice or whatever used.
 
-Please also see [the showcase post I made about this on my blog](https://www.someodd.zip/showcase/whisper-radio).
+Please also see [the showcase post I made about this on my blog](https://www.someodd.zip/showcase/whisper-radio). It has some tips for troubleshooting and setting up an Icecast2 server.
 
-You can also listen to the official radio station by pointing a media plalyer
-like audacious (lots of browsers may have issues with plain HTTP these days) to
-http://radio.someodd.zip:8000/stream
+Here's a demo/the official Whisper Radio stream, you may be able to open in your browser or a media player: https://radio.someodd.zip/stream
 
 Be sure to do this then edit the files before you begin:
 
