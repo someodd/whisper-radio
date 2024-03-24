@@ -17,7 +17,8 @@
 
   <intakes>
     <intake>
-      <filename>/path/to/whisper-radio/playlist-main.m3u</filename>
+      <type>program</type>
+      <filename>/path/to/whisper-radio/playlist.sh</filename>
       <stream_once>0</stream_once>
       <shuffle>No</shuffle>
     </intake>

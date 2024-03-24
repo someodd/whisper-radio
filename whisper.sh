@@ -13,8 +13,19 @@ source "${SCRIPT_DIR}/config.sh"
 # For chron, mostly
 echo "$(date)"
 
+# Check the number of directories in the output directory
+DIR_COUNT=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
+if [ "$DIR_COUNT" -gt 1 ]; then
+    echo "More than one directory found in the output directory. Exiting."
+    echo "If you want to start a new batch and launch ezstream, delete the existing directories in the output directory and try again."
+    exit 1
+fi
 
-# FIXME: it's important that the AR, AC, and AB all match up 
+# Used for creating batch directory!
+BATCH_TIMESTAMP=$(date +%Y%m%dT%H%M%S)
+BATCH_DIR="${OUTPUT_DIR}/${BATCH_TIMESTAMP}/"
+
+mkdir -p "${BATCH_DIR}"
 
 # Other host, used for longer stuff.
 piper_tts() {
@@ -27,20 +38,11 @@ piper_tts() {
   echo "$input_text" | piper --model "${PROJECT_ROOT}/en_US-hfc_female-medium.onnx" --sentence-silence 1.2 --output_file "$temp_wav"
 
   # Use ffmpeg to convert the WAV file to an MP3 file
-  ffmpeg -i "$temp_wav" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
+  ffmpeg -i "$temp_wav" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/${output_file}.mp3"
 
   # Delete the temporary WAV file
   rm "$temp_wav"
 }
-
-# HAVE A COMMAND FOR SETTING FFMPEG BITRATES ETC AND OUTPUT, JUST ONE COMMAND OR WHATEVER FIXME
-
-# Recreate the output dir
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR"
-touch "$MAIN_PLAYLIST"
-rm -f "$PENDING_PLAYLIST"
-touch "$PENDING_PLAYLIST"
 
 # Prepare espeak command with specified settings
 whisper_tts() {
@@ -56,7 +58,7 @@ whisper_tts() {
 	local input_text="$1"
     local output_file="$2"
 
-	$ESPEAK_COMMAND "$input_text" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${OUTPUT_DIR}/${output_file}.mp3"
+	$ESPEAK_COMMAND "$input_text" --stdout | ffmpeg -i - -ar "$FFMPEG_AUDIO_SAMPLING_RATE" -ac "$FFMPEG_AUDIO_CHANNELS" -ab "$FFMPEG_AUDIO_BITRATE" -f mp3 "${BATCH_DIR}/${output_file}.mp3"
 }
 
 get_gopher() {
@@ -168,24 +170,24 @@ output_random_audio_file() {
     METADATA="${TITLE} by ${ARTIST}"
 
     # Prepare a file list for ffmpeg concat demuxer
-    FILE_LIST_PATH="${OUTPUT_DIR}/file_list.txt"
+    FILE_LIST_PATH="${BATCH_DIR}/file_list.txt"
 
     # If metadata is found, use espeak to convert the metadata to speech
     if [ -n "$TITLE" ]; then
         whisper_tts "Welcome to the audio segment of the program. Now let's play: $METADATA" "metadata"
 
         # Create a file list for concatenation
-        echo "file '${OUTPUT_DIR}/metadata.mp3'" > "$FILE_LIST_PATH"
+        echo "file '${BATCH_DIR}/metadata.mp3'" > "$FILE_LIST_PATH"
         echo "file '$RANDOM_SONG'" >> "$FILE_LIST_PATH"
 
         # Concatenate the speech audio file with the song file using the file list
-        ffmpeg -f concat -safe 0 -i "$FILE_LIST_PATH" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
+        ffmpeg -f concat -safe 0 -i "$FILE_LIST_PATH" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song.mp3"
 
         # Clean up the temporary files
-        rm "${OUTPUT_DIR}/metadata.mp3" "$FILE_LIST_PATH"
+        rm "${BATCH_DIR}/metadata.mp3" "$FILE_LIST_PATH"
     else
         # If no metadata is found, just output the song file
-        ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${OUTPUT_DIR}/random_song.mp3"
+        ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song.mp3"
     fi
 }
 
@@ -201,69 +203,6 @@ output_random_text_file
 
 output_random_audio_file
 
-# For all the MP3s outputted to the $OUTPUT_DIR rename them so their filename
-# includes their own sum and also move them to the final directory.
-#
-# The files get sum in their name as a means of checking if the playlist
-# actually has changed in content.
-tag_outputs() {
-    # Iterate over all files in the output directory
-    for file in "$OUTPUT_DIR"/*.mp3; do
-        # Check if the file is an MP3 file
-        if [ -f "$file" ]; then
-            # Generate a SHA-256 hash of the file
-            hash=$(sha256sum "$file" | cut -d ' ' -f 1)
-            
-            # Extract the filename and extension
-            filename=$(basename "$file")
-            extension="${filename##*.}"
-            filename="${filename%.*}"
-
-            # Rename the file to include the hash in its filename
-            new_filename="$OUTPUT_DIR/${filename}_${hash}.${extension}"
-            mv "$file" "$new_filename"
-
-	    absolute_path=$(realpath "$new_filename")
-	    echo "$absolute_path" >> "$PENDING_PLAYLIST"
-        fi
-    done
-}
-
-tag_outputs
-
-# I'm keeping the old playlist too because, I think, if you send HUP signal to ezsstream, it'll keep trying
-# to play the old playlist for a bit, so we can keep it around for transitional purposes, just in case.
-remove_files_not_in_playlist() {
-	# Path to your M3U playlist
-	playlist="$MAIN_PLAYLIST"
-
-	# Directory containing your media files
-	media_dir="$OUTPUT_DIR"
-
-	# Temporary file to store the list of files to keep
-	keep_file="${OUTPUT_DIR}/keep.tmp"
-
-	# Make sure the temporary file doesn't exist before starting
-	rm -f "$keep_file"
-
-	# Extract filenames from the M3U playlist and store them in keep_file
-	grep -v '^#' "$playlist" | sed 's/.*\///' > "$keep_file"
-    grep -v '^#' "$PENDING_PLAYLIST" | sed 's/.*\///' >> "$keep_file"
-
-	# Change to the media directory
-	cd "$media_dir" || exit
-
-	# List all files in the media directory, compare with keep_file, and delete unmatched files
-	find . -type f | sed 's/.\///' | grep -v -F -f "$keep_file" | while read -r line; do
-	    echo "Deleting: $line"
-	    # Uncomment the next line to actually delete the files
-	    rm "$line"
-	done
-
-	# Clean up: Remove the temporary keep_file
-	rm -f "$keep_file"
-}
-
 # Function to manage EZStream based on playlist comparison
 #
 # Basically, two things can happen:
@@ -276,22 +215,9 @@ manage_ezstream() {
     # Check if EZStream is running. It should always be running.
     if ! pgrep -f "$EZSTREAM_CMD" > /dev/null; then
         echo "EZStream is not running. Starting EZStream..."
-        mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
-        nohup nohup $EZSTREAM_CMD > output.log 2>&1 &
+        nohup $EZSTREAM_CMD &>/dev/null &
     else 
-        echo "EZStream is running."
-
-        # Compare the main and pending playlists
-        if ! cmp -s "$MAIN_PLAYLIST" "$PENDING_PLAYLIST"; then
-            echo "Playlists are different. Reloading EZStream..."
-	        remove_files_not_in_playlist
-            mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
-            # Find EZStream's PID and send SIGHUP to force config reload
-            pkill -HUP -f "$EZSTREAM_CMD"
-        else
-            echo "Playlists are the same. No action needed."
-            rm "$PENDING_PLAYLIST"
-        fi
+        echo "EZStream is already running."
     fi
 }
 

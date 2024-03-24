@@ -1,7 +1,6 @@
 output/
-output-final/
-playlist-*.m3u
 *.swp
 *.onnx*
 config.sh
 ezstream.xml
+cursor
