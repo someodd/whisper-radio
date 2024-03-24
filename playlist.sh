@@ -37,9 +37,6 @@ source "${SCRIPT_DIR}/config.sh"
 # Directory where the batch jobs are stored
 OUTPUT_DIR="output"
 
-# File to store the cursor
-CURSOR_FILE="cursor"
-
 # Function to get the oldest directory
 get_oldest_directory() {
     find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-
