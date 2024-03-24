@@ -49,6 +49,11 @@ get_oldest_file() {
 
 # Function to update the cursor
 update_cursor() {
+    # Check if the cursor file exists, if not, create it
+    if [ ! -f "$CURSOR_FILE" ]; then
+        touch "$CURSOR_FILE"
+    fi
+    
     # Get the current file and its directory
     CURSOR_FILE_PATH=$(cat "$CURSOR_FILE")
     CURSOR_DIRECTORY=$(dirname "$CURSOR_FILE_PATH")
