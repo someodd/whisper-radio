@@ -49,11 +49,16 @@ get_oldest_file() {
 
 # Function to update the cursor
 update_cursor() {
-    # Check if the cursor file exists, if not, create it
+    # Check if the cursor file exists, if not, create it and write the path to the oldest file in the newest directory
     if [ ! -f "$CURSOR_FILE" ]; then
-        touch "$CURSOR_FILE"
+        # Find the newest directory
+        NEWEST_DIRECTORY=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T+ %p\n' | sort -r | head -n 1 | cut -d' ' -f2-)
+        # Find the oldest file in the newest directory
+        OLDEST_FILE=$(find "$NEWEST_DIRECTORY" -type f -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-)
+        echo "$OLDEST_FILE" > "$CURSOR_FILE"
+        return
     fi
-    
+
     # Get the current file and its directory
     CURSOR_FILE_PATH=$(cat "$CURSOR_FILE")
     CURSOR_DIRECTORY=$(dirname "$CURSOR_FILE_PATH")
