@@ -277,7 +277,7 @@ manage_ezstream() {
     if ! pgrep -f "$EZSTREAM_CMD" > /dev/null; then
         echo "EZStream is not running. Starting EZStream..."
         mv "$PENDING_PLAYLIST" "$MAIN_PLAYLIST"
-        nohup $EZSTREAM_CMD &>/dev/null &
+        nohup nohup $EZSTREAM_CMD > output.log 2>&1 &
     else 
         echo "EZStream is running."
 
