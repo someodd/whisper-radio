@@ -8,6 +8,7 @@ IceCast radio station of a TTS (espeak) reading off:
   * Random music file
   * Reads the "freshest" thread on gopherden (gopher://gopher.someodd.zip:7070/)
   * MOTD: a message you want to consistently be read
+  * Some Masstodon/Fosstodon data
 
 "Whisper" is a reference to the espeak voice or whatever used.
 
@@ -27,6 +28,7 @@ cp config.example.sh config.sh
   * Poetry by Emily Dickinson
   * Hacker Manifesto from Phrak Magazine
   * Some poem reading I found on Internet Archive
+  * Some feeds (RSS/Atom)
 
 ## Dependencies
 
