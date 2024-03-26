@@ -9,6 +9,7 @@ IceCast radio station of a TTS (espeak) reading off:
   * Reads the "freshest" thread on gopherden (gopher://gopher.someodd.zip:7070/)
   * MOTD: a message you want to consistently be read
   * Some Masstodon/Fosstodon data
+  * Responds to the latest post under a specific hashtag on fosstodon (uses AI)
 
 "Whisper" is a reference to the espeak voice or whatever used.
 

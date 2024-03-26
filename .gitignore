@@ -4,3 +4,4 @@ output/
 config.sh
 ezstream.xml
 cursor
+response_cache.txt
