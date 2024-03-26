@@ -266,6 +266,7 @@ output_random_text_file() {
 #
 # I could instead use mktemp.
 output_random_audio_file() {
+    local TAG="$1"
     # Select a random song from the audio directory
     RANDOM_SONG=$(find "$AUDIO_DIR" -type f | shuf -n 1)
     
@@ -288,13 +289,13 @@ output_random_audio_file() {
         echo "file '$RANDOM_SONG'" >> "$FILE_LIST_PATH"
 
         # Concatenate the speech audio file with the song file using the file list
-        ffmpeg -f concat -safe 0 -i "$FILE_LIST_PATH" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song.mp3"
+        ffmpeg -f concat -safe 0 -i "$FILE_LIST_PATH" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song_${TAG}.mp3"
 
         # Clean up the temporary files
         rm "${BATCH_DIR}/metadata.mp3" "$FILE_LIST_PATH"
     else
         # If no metadata is found, just output the song file
-        ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song.mp3"
+        ffmpeg -i "$RANDOM_SONG" -ar 22050 -ac 1 -ab 64k -f mp3 "${BATCH_DIR}/random_song_${TAG}.mp3"
     fi
 }
 
@@ -317,7 +318,11 @@ output_gopher
 
 output_random_text_file
 
-output_random_audio_file
+output_random_audio_file "one"
+
+output_random_audio_file "two"
+
+output_random_audio_file "three"
 
 # Function to manage EZStream based on playlist comparison
 #

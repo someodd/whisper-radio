@@ -43,12 +43,13 @@ cp config.example.sh config.sh
   * piper-tts
   * ffmpeg
 
-### piper-tts setup
-
 ```
-sudo apt-get install pipx
+sudo apt-get update
+sudo apt-get install espeak jq curl ezstream icecast2 metar ffmpeg pipx ffmpeg xmlstarlet
 pipx install piper-tts
 ```
+
+### piper-tts setup
 
 Download:
 
