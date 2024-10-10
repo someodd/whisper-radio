@@ -24,6 +24,8 @@ cp ezstream.example.xml ezstream.xml
 cp config.example.sh config.sh
 ```
 
+Now being used by [Bitreich](http://bitreich.org/)!
+
 ## Included examples
 
   * Poetry by Emily Dickinson
