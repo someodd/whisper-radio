@@ -113,3 +113,11 @@ Use `crontab -e`, run every five minutes and log:
 
 I had this problem where I thought the project was broken but I restarted
 computer and it works again. careful how kill ezstream maybe.
+
+## Tips
+
+Link music from an archive of some musician to the possible audio sources, to avoid duplication:
+
+```
+sudo find /foo/bar/some-legal-music-archive -name "*.mp3" -exec ln -s {} ./audio/ \;
+```
