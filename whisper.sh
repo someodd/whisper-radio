@@ -21,6 +21,8 @@ if [ "$DIR_COUNT" -gt 1 ]; then
     OLDEST_DIR=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d | sort | head -n 1)
     echo "Deleting directory: $OLDEST_DIR"
     rm -rf "$OLDEST_DIR"
+    echo "Resetting cursor."
+    rm cursor
 fi
 
 # Used for creating batch directory!
