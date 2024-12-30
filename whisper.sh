@@ -17,9 +17,10 @@ echo "$(date)"
 # Check the number of directories in the output directory
 DIR_COUNT=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d | wc -l)
 if [ "$DIR_COUNT" -gt 1 ]; then
-    echo "More than one directory found in the output directory. Exiting."
-    echo "If you want to start a new batch and launch ezstream, delete the existing directories in the output directory and try again."
-    exit 1
+    echo "More than one directory found in the output directory. Deleting the oldest directory."
+    OLDEST_DIR=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d | sort | head -n 1)
+    echo "Deleting directory: $OLDEST_DIR"
+    rm -rf "$OLDEST_DIR"
 fi
 
 # Used for creating batch directory!
