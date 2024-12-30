@@ -12,3 +12,4 @@ OUTPUT_DIR="${PROJECT_ROOT}/output" # Output directory. I feel like it should go
 CURSOR_FILE="${PROJECT_ROOT}/cursor"
 OPENAI_API_KEY="sk-1234567890abcdef1234567890abcdef" # OpenAI API key
 FOSSTODON_TAG="whisperradio" # This is what gets replied to
+GOPHERPAGE="gopher://gopher.someodd.zip:70/phorum"
