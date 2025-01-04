@@ -17,7 +17,7 @@ echo "$(date)"
 # FIXME: why not just use script dir and not even have project_root...
 cd "${PROJECT_ROOT}"
 
-BATCH_DIR=$("./manage_output_dir.sh "$OUTPUT_DIR")
+BATCH_DIR=$(./manage_output_dir.sh "$OUTPUT_DIR")
 
 cat "${MOTD_FILE}" | ./out_tts_oldschool.sh "${BATCH_DIR}/motd"
 
