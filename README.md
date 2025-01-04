@@ -26,13 +26,6 @@ cp config.example.sh config.sh
 
 Now being used by [Bitreich](http://bitreich.org/)!
 
-## Included examples
-
-  * Poetry by Emily Dickinson
-  * Hacker Manifesto from Phrak Magazine
-  * Some poem reading I found on Internet Archive
-  * Some feeds (RSS/Atom)
-
 ## Dependencies
 
   * espeak
@@ -51,6 +44,16 @@ sudo apt-get install espeak jq curl ezstream icecast2 metar ffmpeg pipx ffmpeg x
 pipx install piper-tts
 ```
 
+### Content setup
+
+Make sure to create and populate these directories in the project folder:
+
+* `audio/` put mp3s and the like in here. The pool of audio that'll be randomly
+  selected from to build the radio program.
+* `text/` same as above, but with plain text files.
+
+Also check `config.sh` for Atom/RSS feeds, gopher page, etc.
+
 ### piper-tts setup
 
 Download:
@@ -60,6 +63,13 @@ Download:
   * [Check out the supported voices for Piper](https://github.com/rhasspy/piper/blob/master/VOICES.md)
 
 You may have to open a new terminal for it to be in the path.
+
+As of right now I had to use this weird setup to get around [a current issue with piper installation](https://github.com/rhasspy/piper/issues/509):
+
+```
+pipx install uv
+uv tool install --python 3.11 piper-tts==1.2.0
+```
 
 ### icecast2 set up
 

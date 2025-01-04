@@ -5,3 +5,6 @@ config.sh
 ezstream.xml
 cursor
 response_cache.txt
+audio/
+bumps/
+text/
