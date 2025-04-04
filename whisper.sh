@@ -3,7 +3,7 @@
 # Builds the radio program to a batch directory and manages the ezstream process.
 
 # Stop on error
-set -e
+#set -e
 
 # Get the script's own directory
 SCRIPT_DIR=$(dirname "$0")
