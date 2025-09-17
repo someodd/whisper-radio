@@ -29,10 +29,29 @@
 #    │   └── 0003.mp3
 #
 
+
 # Stop on error
 set -e
 SCRIPT_DIR=$(dirname "$0")
 source "${SCRIPT_DIR}/config.sh"
+
+# --- LOCKING ---
+# Function to clean up the lock file
+cleanup_lock() {
+    rm -f "$LOCK_FILE"
+}
+
+# Trap signals to ensure the lock file is removed
+trap cleanup_lock EXIT HUP INT TERM
+
+# Wait for the lock file to be removed if it exists
+while [ -f "$LOCK_FILE" ]; do
+    sleep 1
+done
+
+# Create the lock file
+touch "$LOCK_FILE"
+# --- END LOCKING ---
 
 # Directory where the batch jobs are stored
 OUTPUT_DIR="output"
@@ -83,19 +102,12 @@ update_cursor() {
     echo "$NEXT_FILE" > "$CURSOR_FILE"
 }
 
-# Function to clean up old batch jobs
-cleanup_old_jobs() {
-    # Get the directory of the file in the cursor file
-    CURSOR_DIRECTORY=$(dirname "$(cat "$CURSOR_FILE")")
-
-    # Remove all directories older than the directory in the cursor file
-    find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d ! -newer "$CURSOR_DIRECTORY" ! -path "$CURSOR_DIRECTORY" -exec rm -r {} \;
-}
-
 # Update the cursor
 update_cursor
 
 cat "$CURSOR_FILE"
 
-# Clean up old batch jobs
-cleanup_old_jobs
+# --- LOCKING ---
+# Remove the lock file
+rm -f "$LOCK_FILE"
+# --- END LOCKING ---

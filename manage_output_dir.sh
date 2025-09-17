@@ -29,6 +29,24 @@ OUTPUT_DIR="${1}"
 # This assumes the script is run from the project root, so config.sh is findable
 source "./config.sh"
 
+# --- LOCKING ---
+# Function to clean up the lock file
+cleanup_lock() {
+    rm -f "$LOCK_FILE"
+}
+
+# Trap signals to ensure the lock file is removed
+trap cleanup_lock EXIT HUP INT TERM
+
+# Wait for the lock file to be removed if it exists
+while [ -f "$LOCK_FILE" ]; do
+    sleep 1
+done
+
+# Create the lock file
+touch "$LOCK_FILE"
+# --- END LOCKING ---
+
 # Get the PARENT DIRECTORY that the cursor is currently pointing to.
 CURSOR_DIRECTORY=""
 if [ -s "$CURSOR_FILE" ]; then
@@ -67,3 +85,7 @@ BATCH_DIR="${OUTPUT_DIR}/${BATCH_TIMESTAMP}/"
 mkdir -p "${BATCH_DIR}"
 echo "${BATCH_DIR}"
 
+# --- LOCKING ---
+# Remove the lock file
+rm -f "$LOCK_FILE"
+# --- END LOCKING ---
