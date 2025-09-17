@@ -26,6 +26,11 @@ cp config.example.sh config.sh
 
 Now being used by [Bitreich](http://bitreich.org/)!
 
+## Warning
+
+This was an experiment in seeing how far I could take shell scripting, kinda,
+and it's just a real headache sometimes. There may be bugs!
+
 ## Dependencies
 
   * espeak
