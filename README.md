@@ -116,12 +116,10 @@ cd whisper-radio
 
 ## Crontab
 
-How often to poll or...
-
-Use `crontab -e`, run every five minutes and log:
+Use `crontab -e`, run every five minutes and log errors:
 
 ```
-*/5 * * * * /path/to/whisper.sh > /path/to/logfile 2>&1
+*/5 * * * * /home/baudrillard/Projects/whisper-radio/whisper.sh 2>> /home/baudrillard/Projects/whisper-radio/logfile
 ```
 
 ### Troubleshooting
