@@ -91,7 +91,10 @@ cat "${MOTD_FILE}" \
 
 ./out_random_audio.sh "${AUDIO_DIR}" "${BATCH_DIR}" "one"
 ./out_random_audio.sh "${AUDIO_DIR}" "${BATCH_DIR}" "two"
-./out_random_audio.sh "${AUDIO_DIR}" "${BATCH_DIR}" "three"
+
+# Select a random  DnB song from Internet Archive
+./out_ia_dnb.sh "/temp" "${BATCH_DIR}" "iadnb1"
+./out_ia_dnb.sh "/temp" "${BATCH_DIR}" "iadnb2"
 
 ./manage_ezstream.sh "${PROJECT_ROOT}"
 
