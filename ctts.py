@@ -120,6 +120,19 @@ def sox_filter(in_wav: str, out_wav: str) -> None:
     subprocess.check_call(cmd)
 
 
+def synth_to_file(text: str, speaker_wav: str, out_wav: str, gpu: bool) -> None:
+    """
+    Synthesize to out_wav. If gpu=True and CUDA is available, attempt GPU.
+    """
+    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=gpu)
+    tts.tts_to_file(
+        text=text,
+        speaker_wav=speaker_wav,
+        language="en",
+        file_path=out_wav,
+    )
+
+
 def main() -> int:
     if len(sys.argv) != 4:
         print('Usage: ctts.py "text" out.wav speaker.wav')
@@ -139,7 +152,7 @@ def main() -> int:
         speaker_bytes + b"\n---\n" +
         FILTER_VERSION.encode("utf-8")
     )
-    key = sha256_bytes(key_material)[:16]  # short but collision-resistant enough for cache filenames
+    key = sha256_bytes(key_material)[:16]
 
     cache_final = f"/tmp/ctts_{key}.wav"
     cache_raw = f"/tmp/ctts_{key}_raw.wav"
@@ -152,19 +165,21 @@ def main() -> int:
         print(f"Cache hit: {cache_final} -> {out_path}")
         return 0
 
-    use_gpu = torch.cuda.is_available()
-    print("GPU:", use_gpu)
+    use_gpu = bool(torch.cuda.is_available())
+    print("GPU available:", use_gpu)
 
-    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=use_gpu)
-
-    # Generate raw TTS
+    # Generate raw TTS (GPU first, fall back to CPU on CUDA OOM)
     print("Synthesizing...")
-    tts.tts_to_file(
-        text=text,
-        speaker_wav=speaker_wav,
-        language="en",
-        file_path=cache_raw
-    )
+    try:
+        synth_to_file(text=text, speaker_wav=speaker_wav, out_wav=cache_raw, gpu=use_gpu)
+    except torch.OutOfMemoryError:
+        # Most common on small VRAM cards (e.g. 2GB). Fall back to CPU.
+        print("CUDA OOM during synthesis; falling back to CPU.")
+        try:
+            torch.cuda.empty_cache()
+        except Exception:
+            pass
+        synth_to_file(text=text, speaker_wav=speaker_wav, out_wav=cache_raw, gpu=False)
 
     # Post-process into cached final
     print("Filtering (SoX)...")
