@@ -96,6 +96,12 @@ cat "${MOTD_FILE}" \
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 
 ./manage_ezstream.sh "${PROJECT_ROOT}"
 

@@ -14,6 +14,3 @@ LOCK_FILE="${PROJECT_ROOT}/playlist.lock"
 OPENAI_API_KEY="sk-1234567890abcdef1234567890abcdef" # OpenAI API key
 FOSSTODON_TAG="whisperradio" # This is what gets replied to
 GOPHERPAGE="gopher://gopher.someodd.zip:70/phorum"
-
-# You can use `which piper` to find out where it's located.
-PIPER_PATH="/home/baudrillard/.local/bin/piper"

@@ -1,6 +1,6 @@
 output/
 *.swp
-*.onnx*
+speaker.wav
 config.sh
 ezstream.xml
 cursor

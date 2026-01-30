@@ -60,22 +60,9 @@ Make sure to create and populate these directories in the project folder:
 
 Also check `config.sh` for Atom/RSS feeds, gopher page, etc.
 
-### piper-tts setup
+### AI TTS Setup
 
-Download:
-
-  * [The JSON for the hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx.json)
-  * [The hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx?download=true)
-  * [Check out the supported voices for Piper](https://github.com/rhasspy/piper/blob/master/VOICES.md)
-
-You may have to open a new terminal for it to be in the path.
-
-As of right now I had to use this weird setup to get around [a current issue with piper installation](https://github.com/rhasspy/piper/issues/509):
-
-```
-pipx install uv
-uv tool install --python 3.11 piper-tts==1.2.0
-```
+Just read `ctts.py`.
 
 ### icecast2 set up
 
