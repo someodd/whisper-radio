@@ -72,22 +72,22 @@ cat "${MOTD_FILE}" \
   | ./out_tts_oldschool.sh "${BATCH_DIR}/motd"
 
 ./get_fosstodon_response.sh "$FOSSTODON_TAG" "$OPENAI_API_KEY" \
-  | ./out_tts_ai.sh "${PIPER_PATH}" "${BATCH_DIR}/respond_to_latest_fosstodon" "${PROJECT_ROOT}"
+  | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/respond_to_latest_fosstodon" "${PROJECT_ROOT}"
 
 ./get_fosstodon.sh \
-  | ./out_tts_ai.sh "${PIPER_PATH}" "${BATCH_DIR}/fosstodon" "${PROJECT_ROOT}"
+  | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/fosstodon" "${PROJECT_ROOT}"
 
 ./get_news.sh \
-  | ./out_tts_ai.sh "${PIPER_PATH}" "${BATCH_DIR}/news" "${PROJECT_ROOT}"
+  | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/news" "${PROJECT_ROOT}"
 
 ./get_weather.sh "NZSP" \
   | ./out_tts_oldschool.sh "${BATCH_DIR}/weather"
 
 ./get_gopher_heading.sh "gopher://gopher.someodd.zip/1/phorum" \
-  | ./out_tts_ai.sh "${PIPER_PATH}" "${BATCH_DIR}/gopher" "${PROJECT_ROOT}"
+  | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/gopher" "${PROJECT_ROOT}"
 
 ./choose_random_text_file.sh "${TEXT_DIR}" \
-  | ./out_tts_ai.sh "${PIPER_PATH}" "${BATCH_DIR}/random_text_file" "${PROJECT_ROOT}"
+  | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/random_text_file" "${PROJECT_ROOT}"
 
 ./out_random_audio.sh "${AUDIO_DIR}" "${BATCH_DIR}" "one"
 
