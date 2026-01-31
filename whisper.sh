@@ -71,35 +71,44 @@ echo "[whisper] Using batch dir: $BATCH_DIR" >&2
 cat "${MOTD_FILE}" \
   | ./out_tts_oldschool.sh "${BATCH_DIR}/motd"
 
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb1"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+
 ./get_fosstodon_response.sh "$FOSSTODON_TAG" "$OPENAI_API_KEY" \
   | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/respond_to_latest_fosstodon" "${PROJECT_ROOT}"
+
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 
 ./get_fosstodon.sh \
   | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/fosstodon" "${PROJECT_ROOT}"
 
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+
 ./get_news.sh \
   | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/news" "${PROJECT_ROOT}"
+
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 
 ./get_weather.sh "NZSP" \
   | ./out_tts_oldschool.sh "${BATCH_DIR}/weather"
 
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+
 ./get_gopher_heading.sh "gopher://gopher.someodd.zip/1/phorum" \
   | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/gopher" "${PROJECT_ROOT}"
+
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 
 ./choose_random_text_file.sh "${TEXT_DIR}" \
   | ./out_tts_ai.sh "${CTTS_PATH}" "${BATCH_DIR}/random_text_file" "${PROJECT_ROOT}"
 
 ./out_random_audio.sh "${AUDIO_DIR}" "${BATCH_DIR}" "one"
 
-# Select a random  DnB song from Internet Archive
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb1"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
-./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb2"
 
