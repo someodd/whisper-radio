@@ -85,7 +85,8 @@ while [[ -z "$TARGET_FILE" || "$TARGET_FILE" == "null" ]]; do
 done
 
 ENCODED_FILE="$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$TARGET_FILE'''))")"
-DOWNLOAD_PATH="${TEMP_DIR}/${RANDOM_ID}_${TARGET_FILE}"
+SAFE_FILENAME="$(echo "$TARGET_FILE" | tr '/' '_')"
+DOWNLOAD_PATH="${TEMP_DIR}/${RANDOM_ID}_${SAFE_FILENAME}"
 
 echo "Fetching: $RANDOM_ID / $TARGET_FILE"
 curl -sL -o "$DOWNLOAD_PATH" "https://archive.org/download/$RANDOM_ID/$ENCODED_FILE"
