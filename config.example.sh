@@ -15,4 +15,5 @@ OPENAI_API_KEY="sk-1234567890abcdef1234567890abcdef" # OpenAI API key
 FOSSTODON_TAG="whisperradio" # This is what gets replied to
 GOPHERPAGE="gopher://gopher.someodd.zip:70/phorum"
 
-CTTS_PATH="${PROJECT_ROOT/ctts.py"
+CTTS_PATH="${PROJECT_ROOT}/ctts.py"
+PIPER_PATH="/home/baudrillard/.local/bin/piper"
