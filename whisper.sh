@@ -69,7 +69,7 @@ echo "[whisper] Using batch dir: $BATCH_DIR" >&2
 # Pipelines (unchanged), now with a clean $BATCH_DIR
 
 cat "${MOTD_FILE}" \
-  | ./out_tts_oldschool_fast.sh "${BATCH_DIR}/motd"
+  | ./out_tts_oldschool.sh "${BATCH_DIR}/motd"
 
 ./get_fosstodon_response.sh "$FOSSTODON_TAG" "$OPENAI_API_KEY" \
   | ./out_tts_ai_slow.sh "${CTTS_PATH}" "${BATCH_DIR}/respond_to_latest_fosstodon" "${PROJECT_ROOT}"
