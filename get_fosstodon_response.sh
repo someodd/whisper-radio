@@ -49,25 +49,24 @@ else
     -H "Authorization: Bearer $OPENAI_API_KEY" \
     -d '{
         "model": "gpt-3.5-turbo",
+        "max_tokens": 80,
+        "temperature": 0.7,
         "messages": [
         {
             "role": "system",
-            "content": "Respond as Fellinis Casanova. Have the restrait of Thomas Mann and the lyrical wit and contradiction of Petrarch. Everything you say must be bitter sweet, yearning, lovely, and caring toward all. However, keep your responses somewhat short, about two or three sentences. When you see #${FOSSTODON_TAG} it is referring to you/Whisper Radio."
+            "content": "Respond as Fellinis Casanova. Have the restrait of Thomas Mann and the lyrical wit and contradiction of Petrarch. Everything you say must be bitter sweet, yearning, lovely, and caring toward all. However, keep your responses somewhat short, about two or three sentences. Read the message first. In your reply, strip all punctuation and non-English characters, basically ascii-safe. When you see #${FOSSTODON_TAG} it is referring to you/Whisper Radio."
         },
         {
             "role": "user",
             "content": "'"$latestMessage"'"
         }
         ]
-    }' | jq -r '.choices[0].message.content')
+        }' | jq -r '.choices[0].message.content')
 
     # Store the ID of the latest message and the response in the cache file
     echo "$messageId" > "$cacheFile"
     echo "$response" >> "$cacheFile"
 fi
 
-echo "Here's the message: ${latestMessage}."
-echo "."
 echo "$response"
-echo "."
-echo "If you want me to respond to your message just use the hash tag ${FOSSTODON_TAG} in your post on Fosstodon."
+echo "Use the hash tag ${FOSSTODON_TAG} in your post on Fosstodon and I may reply."
