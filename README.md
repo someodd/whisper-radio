@@ -104,10 +104,10 @@ cd whisper-radio
 
 ## Crontab
 
-Use `crontab -e`, run every 45 minutes and log errors:
+Use `crontab -e`, run every hour and log errors:
 
 ```
-*/45 * * * * /home/baudrillard/Projects/whisper-radio/whisper.sh 2>> /home/baudrillard/Projects/whisper-radio/logfile
+0 * * * * /home/baudrillard/Projects/whisper-radio/whisper.sh 2>> /home/baudrillard/Projects/whisper-radio/logfile
 ```
 
 ### Troubleshooting
