@@ -3,7 +3,7 @@
 # Builds the radio program to a batch directory and manages the ezstream process.
 
 # Safer bash defaults for scripts with pipes
-set -Euo
+set -uo
 IFS=$'\n\t'
 
 # --- helpers ---------------------------------------------------------------
