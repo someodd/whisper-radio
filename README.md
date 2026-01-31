@@ -42,6 +42,7 @@ and it's just a real headache sometimes. There may be bugs!
   * icecast2
   * metar
   * piper-tts
+  * just take a look at `ctts.py` if you wanna use it (used by default)
   * ffmpeg
 
 ```
@@ -60,7 +61,24 @@ Make sure to create and populate these directories in the project folder:
 
 Also check `config.sh` for Atom/RSS feeds, gopher page, etc.
 
-### AI TTS Setup
+### piper-tts setup
+
+Download:
+
+  * [The JSON for the hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx.json)
+  * [The hfc_female Piper voice](https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/hfc_female/medium/en_US-hfc_female-medium.onnx?download=true)
+  * [Check out the supported voices for Piper](https://github.com/rhasspy/piper/blob/master/VOICES.md)
+
+You may have to open a new terminal for it to be in the path.
+
+As of right now I had to use this weird setup to get around [a current issue with piper installation](https://github.com/rhasspy/piper/issues/509):
+
+```
+pipx install uv
+uv tool install --python 3.11 piper-tts==1.2.0
+```
+
+### AI TTS (Cloned Voice) Setup
 
 Just read `ctts.py`.
 
