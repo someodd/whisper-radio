@@ -98,8 +98,8 @@ if [[ ! -s "$DOWNLOAD_PATH" ]]; then
 fi
 
 # --- Extract metadata (best-effort) ---
-TITLE="$(ffprobe -loglevel error -show_entries format_tags=title  -of default=noprint_wrappers=1:nokey=1 "$DOWNLOAD_PATH" || true)"
-ARTIST="$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 "$DOWNLOAD_PATH" || true)"
+TITLE="$(ffprobe -loglevel error -show_entries format_tags=title  -of default=noprint_wrappers=1:nokey=1 "$DOWNLOAD_PATH" 2>/dev/null | tr -d '\r' | head -n1 || true)"
+ARTIST="$(ffprobe -loglevel error -show_entries format_tags=artist -of default=noprint_wrappers=1:nokey=1 "$DOWNLOAD_PATH" 2>/dev/null | tr -d '\r' | head -n1 || true)"
 
 # Fall back to filename
 if [[ -z "$TITLE" ]]; then
@@ -146,7 +146,12 @@ ffmpeg -y \
   -i "$OUTRO_MP3" \
   -filter_complex "[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]" \
   -map "[a]" \
+  -metadata title="$TITLE" \
+  -metadata artist="$ARTIST" \
+  -metadata album="Internet Archive" \
+  -metadata comment="IA item: $RANDOM_ID / $TARGET_FILE" \
   -ar 22050 -ac 1 -b:a 64k \
+  -id3v2_version 3 \
   -f mp3 "$OUT_FILE" \
   -loglevel error
 
