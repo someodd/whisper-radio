@@ -98,6 +98,18 @@ cat "${MOTD_FILE}" \
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb06"
 ./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb07"
 
+./get_interlog.sh \
+  | ./out_tts_ai_fast.sh "${PIPER_PATH}" "${BATCH_DIR}/interlog" "${PROJECT_ROOT}"
+
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb_il0"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb_il1"
+
+./get_bartleby.sh \
+  | ./out_tts_ai_fast.sh "${PIPER_PATH}" "${BATCH_DIR}/bartleby" "${PROJECT_ROOT}"
+
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb_bt0"
+./out_ia_dnb.sh "/tmp" "${BATCH_DIR}" "iadnb_bt1"
+
 ./choose_random_text_file.sh "${TEXT_DIR}" \
   | ./out_tts_ai_fast.sh "${PIPER_PATH}" "${BATCH_DIR}/random_text_file" "${PROJECT_ROOT}"
 

@@ -33,11 +33,8 @@ readable_date() {
 	echo "$weekday the $day$suffix of $month, $year."
 }
 
-# FIXME: get lastest phlog post from my phlog atom!
 echo "Hello and welcome to the rapid-fire headline segment on Whisper Radio. The date is $(readable_date). Let's read some headlines."
-echo "Latest article on someodd's personal blog: $(./get_feed.sh 'https://www.someodd.zip/feed.xml'). "
-echo "..."
-echo "Some OpenAI news: $(./get_feed.sh 'https://openai.com/blog/rss.xml'). "
+echo "Latest accession in someodd's gopher library: $(./get_feed.sh 'gopher://gopher.someodd.zip:70/0/library/catalog/feed.xml' | sed 's/\.md$//'). "
 echo "..."
 echo "CGTN world news: $(./get_feed.sh 'https://www.cgtn.com/subscribe/rss/section/world.xml'). "
 echo "..."
