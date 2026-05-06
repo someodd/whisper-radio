@@ -172,9 +172,13 @@ def main() -> int:
     print("Synthesizing...")
     try:
         synth_to_file(text=text, speaker_wav=speaker_wav, out_wav=cache_raw, gpu=use_gpu)
-    except torch.OutOfMemoryError:
-        # Most common on small VRAM cards (e.g. 2GB). Fall back to CPU.
-        print("CUDA OOM during synthesis; falling back to CPU.")
+    except (torch.OutOfMemoryError, RuntimeError) as e:
+        msg = str(e).lower()
+        if not isinstance(e, torch.OutOfMemoryError) and not (
+            "cuda" in msg or "cublas" in msg or "out of memory" in msg
+        ):
+            raise
+        print(f"CUDA failure during synthesis ({type(e).__name__}); falling back to CPU.")
         try:
             torch.cuda.empty_cache()
         except Exception:
