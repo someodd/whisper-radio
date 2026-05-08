@@ -83,10 +83,14 @@ USAGE
 
 import sys
 import os
+import re
 import hashlib
 import shutil
 import subprocess
+import tempfile
 
+import numpy as np
+import soundfile as sf
 import torch
 from TTS.api import TTS
 
@@ -120,17 +124,110 @@ def sox_filter(in_wav: str, out_wav: str) -> None:
     subprocess.check_call(cmd)
 
 
+def split_text_for_xtts(text: str, max_chars: int = 250) -> list:
+    """Sentence-aware greedy packer.
+
+    XTTS-v2 caps inference at 400 BPE tokens; long inputs assert. We split
+    on sentence boundaries, fall back to comma/semicolon/colon then
+    whitespace for sentences that are themselves too long, and greedy-pack
+    the resulting atomic units into chunks of <= max_chars characters.
+    """
+    normalized = re.sub(r"\s+", " ", text).strip()
+    if not normalized:
+        return [text]
+
+    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+
+    atoms = []
+    for s in sentences:
+        if len(s) <= max_chars:
+            atoms.append(s)
+            continue
+        for piece in re.split(r"(?<=[,;:])\s+", s):
+            if len(piece) <= max_chars:
+                atoms.append(piece)
+                continue
+            buf = ""
+            for w in piece.split():
+                candidate = (buf + " " + w) if buf else w
+                if len(candidate) <= max_chars:
+                    buf = candidate
+                else:
+                    if buf:
+                        atoms.append(buf)
+                    buf = w
+            if buf:
+                atoms.append(buf)
+
+    chunks = []
+    buf = ""
+    for a in atoms:
+        candidate = (buf + " " + a) if buf else a
+        if len(candidate) <= max_chars:
+            buf = candidate
+        else:
+            if buf:
+                chunks.append(buf)
+            buf = a
+    if buf:
+        chunks.append(buf)
+
+    return chunks if chunks else [normalized]
+
+
+def synth_chunks_to_wav(
+    chunks: list, speaker_wav: str, out_wav: str, gpu: bool, gap_ms: int = 150
+) -> None:
+    """Load XTTS once, synth each chunk to a tempfile, concat the WAVs in
+    memory with short silence gaps, write a single WAV to out_wav."""
+    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=gpu)
+
+    parts = []
+    sr = None
+    with tempfile.TemporaryDirectory() as td:
+        for i, chunk in enumerate(chunks):
+            chunk_wav = os.path.join(td, f"chunk_{i:03d}.wav")
+            print(f"Chunk {i + 1}/{len(chunks)} ({len(chunk)} chars)...")
+            tts.tts_to_file(
+                text=chunk,
+                speaker_wav=speaker_wav,
+                language="en",
+                file_path=chunk_wav,
+            )
+            data, this_sr = sf.read(chunk_wav, dtype="float32")
+            if sr is None:
+                sr = this_sr
+            parts.append(data)
+
+    gap = np.zeros(int(sr * gap_ms / 1000), dtype=parts[0].dtype)
+    pieces = []
+    for i, p in enumerate(parts):
+        if i > 0:
+            pieces.append(gap)
+        pieces.append(p)
+    merged = np.concatenate(pieces)
+
+    sf.write(out_wav, merged, sr, subtype="PCM_16")
+
+
 def synth_to_file(text: str, speaker_wav: str, out_wav: str, gpu: bool) -> None:
     """
     Synthesize to out_wav. If gpu=True and CUDA is available, attempt GPU.
+    Long texts are split into <=250-char chunks, synthesized with the model
+    loaded once, and concatenated before SoX post-processing.
     """
-    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=gpu)
-    tts.tts_to_file(
-        text=text,
-        speaker_wav=speaker_wav,
-        language="en",
-        file_path=out_wav,
-    )
+    chunks = split_text_for_xtts(text)
+    if len(chunks) == 1:
+        tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", gpu=gpu)
+        tts.tts_to_file(
+            text=text,
+            speaker_wav=speaker_wav,
+            language="en",
+            file_path=out_wav,
+        )
+        return
+    print(f"Text exceeds single-chunk limit; splitting into {len(chunks)} chunks.")
+    synth_chunks_to_wav(chunks, speaker_wav, out_wav, gpu)
 
 
 def main() -> int:
