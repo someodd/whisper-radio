@@ -8,3 +8,7 @@ response_cache.txt
 audio/
 bumps/
 text/
+bg.wav
+*.onnx
+*.onnx.json
+logfile
