@@ -7,7 +7,7 @@
 
 set -e
 
-FEED_URL="${1:-gopher://gopher.someodd.zip:70/0/library/catalog/feed.xml}"
+FEED_URL="${1:-gopher://gopher.someodd.zip:70/0/catalog/feed.xml}"
 
 feed=$(curl -sS --max-time 20 "$FEED_URL")
 
