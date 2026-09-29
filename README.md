@@ -23,7 +23,10 @@ Be sure to do this then edit the files before you begin:
 ```
 cp ezstream.example.xml ezstream.xml
 cp config.example.sh config.sh
+chmod 600 config.sh ezstream.xml   # both contain secrets
 ```
+
+In `ezstream.xml`, `<filename>` must be the absolute path to `playlist.sh`.
 
 Now being used by [Bitreich](http://bitreich.org/)!
 
@@ -122,16 +125,42 @@ cd whisper-radio
 
 ## Crontab
 
-Use `crontab -e`, run every hour and log errors:
+Use `crontab -e`, run every hour and log everything:
 
 ```
-0 * * * * /home/baudrillard/Projects/whisper-radio/whisper.sh 2>> /home/baudrillard/Projects/whisper-radio/logfile
+0 * * * * /home/baudrillard/Projects/whisper-radio/whisper.sh >> /home/baudrillard/Projects/whisper-radio/logfile 2>&1
 ```
+
+`whisper.sh` takes an `flock` on `whisper.lock`, so if an hour's run is still
+going when the next one fires, the new run only checks on ezstream and exits.
+ezstream's own output goes to `ezstream.log`. Both logs grow forever; add a
+logrotate entry or truncate them now and then.
+
+## How it stays up
+
+- `whisper.sh` builds each batch in `output/.build_<timestamp>` and renames it
+  to `output/<timestamp>` only when it is complete. `playlist.sh` ignores
+  anything that is not a finished batch, so ezstream never plays a half-written
+  file or a temp file.
+- A segment that fails (feed down, archive.org rate limiting, TTS crash) is
+  logged and skipped. It never aborts the batch.
+- `playlist.sh` validates the cursor every call. If the cursor points at a
+  file that no longer exists, or anywhere outside `output/`, it resets to the
+  newest batch instead of feeding ezstream garbage. (ezstream exits after 100
+  unreadable tracks, and busy-loops if the playlist program prints nothing.)
+- `manage_ezstream.sh` tracks ezstream with a pidfile and asks Icecast whether
+  the mount is actually live. A running ezstream with no mount is restarted.
+- Every network call has a timeout, and the XTTS step is capped at 45 minutes.
 
 ### Troubleshooting
 
-I had this problem where I thought the project was broken but I restarted
-computer and it works again. careful how kill ezstream maybe.
+- Stream silent but `ezstream` running: check `ezstream.log`, then run
+  `./playlist.sh` by hand. It should print an absolute path under `output/`.
+- Nothing plays after a fresh install: there are no batches yet. `playlist.sh`
+  sleeps 30 seconds and prints nothing until `whisper.sh` publishes one.
+- To restart ezstream by hand, kill the pid in `ezstream.pid` and run
+  `./manage_ezstream.sh "$PWD"`. Do not start ezstream from another directory.
+- `config.sh` holds your OpenAI key. Keep it `chmod 600`.
 
 ## Tips
 

@@ -1,113 +1,111 @@
 #!/bin/bash
+#
+# Prints the absolute path of the next file ezstream should play, and
+# advances the cursor. Called by ezstream (intake type "program") before
+# every track.
+#
+# Batches live in OUTPUT_DIR as directories named YYYYMMDDTHHMMSS. Only
+# finished batches match that pattern; a batch under construction is named
+# .build_* and is ignored here. Within a batch, files play in modification
+# time order (the order they were generated).
+#
+# The cursor file holds the absolute path of the track being played. If the
+# cursor is missing, empty, or points outside OUTPUT_DIR / at a file that no
+# longer exists, it is reset to the first track of the newest batch instead
+# of spiralling into arbitrary files.
+#
+# Printing an empty line makes ezstream call this script again immediately,
+# in a tight loop. So when there is nothing to play we sleep first.
 
-# This script simply echoes the name of the file that should be played next.
-#
-# Looks through the batches jobs of the output directory while maintaining a "cursor."
-#
-# The batch jobs each get their own directory, containing all the files that were
-# outputted. The directory is simply named after the timestamp of the batch job.
-#
-# The cursor contains the name of the directory batch job and the name of the file that is
-# selected for playing. The cursor is updated every time this script is run.
-#
-# One-by-one this script will first output the oldest 
-#
-# The script which is cron'd to run the batch jobs will not generate a new batch job if
-# the cursor is behind the latest batch job. This is to prevent generating too many batch
-# jobs in the future, which the cursor may never catch up to.
-#
-#
-# For example, the output directory may look like this:
-#    output/
-#    ├── 20250101T000000
-#    │   ├── 0001.mp3
-#    │   ├── 0002.mp3
-#    │   └── 0003.mp3
-#    ├── 20250101T010000
-#    │   ├── 0001.mp3
-#    │   ├── 0002.mp3
-#    │   └── 0003.mp3
-#
-
-
-# Stop on error
-set -e
-SCRIPT_DIR=$(dirname "$0")
+set -u
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
 source "${SCRIPT_DIR}/config.sh"
 
-# --- LOCKING ---
-# Function to clean up the lock file
-cleanup_lock() {
-    rm -f "$LOCK_FILE"
+: "${OUTPUT_DIR:=${SCRIPT_DIR}/output}"
+: "${CURSOR_FILE:=${SCRIPT_DIR}/cursor}"
+: "${LOCK_FILE:=${SCRIPT_DIR}/playlist.lock}"
+OUTPUT_DIR="$(realpath -m "$OUTPUT_DIR")"
+
+# Serialise concurrent callers. flock is released automatically when this
+# process exits, however it exits, so a crash can never leave a stale lock.
+exec 9>"$LOCK_FILE"
+if ! flock -w 30 9; then
+  echo "playlist: could not acquire lock $LOCK_FILE" >&2
+  sleep 5
+  exit 1
+fi
+
+BATCH_RE='^[0-9]{8}T[0-9]{6}$'
+
+# Finished batch directories, oldest first (names sort chronologically).
+list_batches() {
+  [[ -d "$OUTPUT_DIR" ]] || return 0
+  find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+    | grep -E "$BATCH_RE" | sort
 }
 
-# Trap signals to ensure the lock file is removed
-trap cleanup_lock EXIT HUP INT TERM
-
-# Wait for the lock file to be removed if it exists
-while [ -f "$LOCK_FILE" ]; do
-    sleep 1
-done
-
-# Create the lock file
-touch "$LOCK_FILE"
-# --- END LOCKING ---
-
-# Directory where the batch jobs are stored
-OUTPUT_DIR="output"
-
-# Function to get the oldest directory
-get_oldest_directory() {
-    find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-
+# Playable files in a batch, oldest first.
+list_tracks() {
+  find "$1" -mindepth 1 -maxdepth 1 -type f -name '*.mp3' -size +0 -printf '%T@ %p\n' \
+    | sort -n | cut -d' ' -f2-
 }
 
-# Function to get the oldest file in a directory
-get_oldest_file() {
-    find "$1" -type f -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-
+first_track_of_newest_batch() {
+  local b
+  b="$(list_batches | tail -n 1)"
+  [[ -n "$b" ]] || return 0
+  list_tracks "${OUTPUT_DIR}/${b}" | head -n 1
 }
 
-# Function to update the cursor
-update_cursor() {
-    # Check if the cursor file exists, if not, create it and write the path to the oldest file in the newest directory
-    if [ ! -f "$CURSOR_FILE" ]; then
-        # Find the newest directory
-        NEWEST_DIRECTORY=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%T+ %p\n' | sort -r | head -n 1 | cut -d' ' -f2-)
-        # Find the oldest file in the newest directory
-        OLDEST_FILE=$(find "$NEWEST_DIRECTORY" -type f -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-)
-        echo "$OLDEST_FILE" > "$CURSOR_FILE"
-        return
-    fi
-
-    # Get the current file and its directory
-    CURSOR_FILE_PATH=$(cat "$CURSOR_FILE")
-    CURSOR_DIRECTORY=$(dirname "$CURSOR_FILE_PATH")
-
-    # Find the next file in the same directory
-    NEXT_FILE=$(find "$CURSOR_DIRECTORY" -type f -newer "$CURSOR_FILE_PATH" ! -wholename "$CURSOR_FILE_PATH" -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-)
-
-    if [ -z "$NEXT_FILE" ]; then
-        # If there's no next file, find the next directory
-        NEXT_DIRECTORY=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -newer "$CURSOR_DIRECTORY" -printf '%T+ %p\n' | sort | head -n 1 | cut -d' ' -f2-)
-
-        if [ -z "$NEXT_DIRECTORY" ]; then
-            # If there's no next directory, loop back to the oldest file in the current directory
-            NEXT_FILE=$(get_oldest_file "$CURSOR_DIRECTORY")
-        else
-            # If there's a next directory, switch to its oldest file
-            NEXT_FILE=$(get_oldest_file "$NEXT_DIRECTORY")
-        fi
-    fi
-
-    # Update the cursor file
-    echo "$NEXT_FILE" > "$CURSOR_FILE"
+cursor_is_valid() {
+  local cur="$1" dir base
+  [[ -n "$cur" && "$cur" == /* && -f "$cur" && "$cur" == *.mp3 ]] || return 1
+  dir="$(dirname "$cur")"
+  base="$(basename "$dir")"
+  [[ "$(dirname "$dir")" == "$OUTPUT_DIR" && "$base" =~ $BATCH_RE ]]
 }
 
-# Update the cursor
-update_cursor
+next_track() {
+  local cur="$1" dir batch next nb
+  dir="$(dirname "$cur")"
+  batch="$(basename "$dir")"
 
-cat "$CURSOR_FILE"
+  # Next file in the same batch.
+  next="$(list_tracks "$dir" | awk -v cur="$cur" 'found { print; exit } $0 == cur { found = 1 }')"
+  if [[ -n "$next" ]]; then
+    printf '%s\n' "$next"
+    return
+  fi
 
-# --- LOCKING ---
-# Remove the lock file
-rm -f "$LOCK_FILE"
-# --- END LOCKING ---
+  # Otherwise the first file of the next batch, or loop the current one.
+  nb="$(list_batches | awk -v b="$batch" 'found { print; exit } $0 == b { found = 1 }')"
+  if [[ -n "$nb" ]]; then
+    next="$(list_tracks "${OUTPUT_DIR}/${nb}" | head -n 1)"
+  fi
+  if [[ -z "$next" ]]; then
+    next="$(list_tracks "$dir" | head -n 1)"
+  fi
+  printf '%s\n' "$next"
+}
+
+current=""
+if [[ -f "$CURSOR_FILE" ]]; then
+  current="$(head -n 1 "$CURSOR_FILE")"
+fi
+
+if cursor_is_valid "$current"; then
+  next="$(next_track "$current")"
+else
+  [[ -z "$current" ]] || echo "playlist: cursor '$current' is invalid, resetting" >&2
+  next="$(first_track_of_newest_batch)"
+fi
+
+if [[ -z "$next" ]]; then
+  echo "playlist: nothing playable in $OUTPUT_DIR" >&2
+  sleep 30
+  exit 0
+fi
+
+printf '%s\n' "$next" > "${CURSOR_FILE}.tmp" && mv -f "${CURSOR_FILE}.tmp" "$CURSOR_FILE"
+printf '%s\n' "$next"

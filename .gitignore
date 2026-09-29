@@ -3,6 +3,10 @@ output/
 speaker.wav
 config.sh
 ezstream.xml
+ezstream.pid
+ezstream.log
+playlist.lock
+whisper.lock
 cursor
 response_cache.txt
 audio/
@@ -12,3 +16,5 @@ bg.wav
 *.onnx
 *.onnx.json
 logfile
+tts/
+__pycache__/

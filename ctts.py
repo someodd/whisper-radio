@@ -88,6 +88,11 @@ import hashlib
 import shutil
 import subprocess
 import tempfile
+import time
+
+# Coqui asks to accept its licence on first run via input(); under cron that
+# raises EOFError. Agree up front unless the caller says otherwise.
+os.environ.setdefault("COQUI_TOS_AGREED", "1")
 
 import numpy as np
 import soundfile as sf
@@ -96,6 +101,29 @@ from TTS.api import TTS
 
 
 FILTER_VERSION = "sox:v1:highpass120:reverb20:compand0.3,1_6:-70,-60,-20:gain-3"
+CACHE_DIR = tempfile.gettempdir()
+CACHE_MAX_AGE_DAYS = 7
+
+# torch.OutOfMemoryError only exists in newer torch releases.
+_CUDA_OOM = getattr(torch, "OutOfMemoryError", RuntimeError)
+
+
+def prune_cache(max_age_days: int = CACHE_MAX_AGE_DAYS) -> None:
+    """Delete cached wavs older than max_age_days so the cache stays bounded
+    (it lives in /tmp, which is often RAM-backed tmpfs)."""
+    cutoff = time.time() - max_age_days * 86400
+    try:
+        for name in os.listdir(CACHE_DIR):
+            if not (name.startswith("ctts_") and name.endswith(".wav")):
+                continue
+            path = os.path.join(CACHE_DIR, name)
+            try:
+                if os.path.getmtime(path) < cutoff:
+                    os.remove(path)
+            except OSError:
+                pass
+    except OSError:
+        pass
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -251,10 +279,11 @@ def main() -> int:
     )
     key = sha256_bytes(key_material)[:16]
 
-    cache_final = f"/tmp/ctts_{key}.wav"
-    cache_raw = f"/tmp/ctts_{key}_raw.wav"
+    cache_final = os.path.join(CACHE_DIR, f"ctts_{key}.wav")
+    cache_raw = os.path.join(CACHE_DIR, f"ctts_{key}_raw.wav")
 
     ensure_parent_dir(out_path)
+    prune_cache()
 
     # If final cached output already exists, just copy it and exit.
     if os.path.exists(cache_final):
@@ -269,9 +298,9 @@ def main() -> int:
     print("Synthesizing...")
     try:
         synth_to_file(text=text, speaker_wav=speaker_wav, out_wav=cache_raw, gpu=use_gpu)
-    except (torch.OutOfMemoryError, RuntimeError) as e:
+    except (_CUDA_OOM, RuntimeError) as e:
         msg = str(e).lower()
-        if not isinstance(e, torch.OutOfMemoryError) and not (
+        if not isinstance(e, _CUDA_OOM) and not (
             "cuda" in msg or "cublas" in msg or "out of memory" in msg
         ):
             raise
@@ -285,6 +314,10 @@ def main() -> int:
     # Post-process into cached final
     print("Filtering (SoX)...")
     sox_filter(cache_raw, cache_final)
+    try:
+        os.remove(cache_raw)  # only the filtered result is worth keeping
+    except OSError:
+        pass
 
     # Copy cached final to requested output path
     shutil.copyfile(cache_final, out_path)

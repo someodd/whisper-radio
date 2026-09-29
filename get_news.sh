@@ -5,12 +5,14 @@
 #
 # This script reads the latest headlines from various sources.
 
-# Stop on error
-set -e
+set -uo pipefail
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR" || exit 1
 
 readable_date() {
 	# Get day, month, and year
-	day=$(date +%d)
+	# %-d avoids a leading zero: "08" and "09" are invalid octal in (( )).
+	day=$(date +%-d)
 	month=$(date +%B)
 	year=$(date +%Y)
 	weekday=$(date +%A)
@@ -26,11 +28,8 @@ readable_date() {
 	  suffix="th"
 	fi
 
-	# Remove leading zero from day if present
-	day=$(echo $day | sed 's/^0*//')
-
 	# Combine to form friendly date
-	echo "$weekday the $day$suffix of $month, $year."
+	echo "$weekday the $day$suffix of $month, $year"
 }
 
 echo "Hello and welcome to the rapid-fire headline segment on Whisper Radio. The date is $(readable_date). Let's read some headlines."

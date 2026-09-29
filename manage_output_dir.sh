@@ -1,64 +1,52 @@
 #!/usr/bin/env bash
+#
+# Prepare OUTPUT_DIR for a new batch and print the path of a *staging*
+# directory to build it in. The caller renames the staging directory to its
+# final YYYYMMDDTHHMMSS name once the batch is complete (see whisper.sh), so
+# playlist.sh never sees a half-built batch.
+#
+# Cleanup: every finished batch except the one the cursor is playing from is
+# deleted, as are leftover staging directories from crashed runs. Nothing
+# outside OUTPUT_DIR is ever touched, and only directories matching the
+# batch naming pattern are considered.
+#
+# Usage: manage_output_dir.sh <output_dir>
 
-# Get the latest message from a phorum (gopher) thread.
-#
-# Usage:
-#   manage_output_dir.sh "outputdir/"
-#
-# This checks the output directory for the number of directories and deletes the oldest
-# one and resets the cursor if there are more than one. Returns the path to the batch
-# directory created if no error.
-#
-# Will not delete a directory found in cursor.
-#
-# The point of this script is to prepare the output directory for a new batch (queue) of
-# audio to be ran as a radio program.
+set -euo pipefail
 
-# Stop on error
-set -e
-
-# 1) Check for required argument (metar station)
-if [[ -z "$1" ]]; then
-  echo "Usage: $0 <outputdir>"
+if [[ -z "${1:-}" ]]; then
+  echo "Usage: $0 <output_dir>" >&2
   exit 1
 fi
 
-OUTPUT_DIR="${1}"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "${SCRIPT_DIR}/config.sh"
 
-# Source the config to get the cursor file path
-# This assumes the script is run from the project root, so config.sh is findable
-source "./config.sh"
+OUTPUT_DIR="$(realpath -m "$1")"
+mkdir -p "$OUTPUT_DIR"
 
-# Get the PARENT DIRECTORY that the cursor is currently pointing to.
+if [[ "$OUTPUT_DIR" == "/" || "$OUTPUT_DIR" == "$HOME" ]]; then
+  echo "Refusing to manage $OUTPUT_DIR as an output directory" >&2
+  exit 1
+fi
+
 CURSOR_DIRECTORY=""
-if [ -s "$CURSOR_FILE" ]; then
-    # Get the directory from the cursor file
-    CURSOR_DIR_RAW=$(dirname "$(cat "$CURSOR_FILE")")
-    # Standardize the path to an absolute path
-    CURSOR_DIRECTORY=$(realpath "$CURSOR_DIR_RAW")
+if [[ -s "${CURSOR_FILE:-}" ]]; then
+  CURSOR_DIRECTORY="$(realpath -m "$(dirname "$(head -n 1 "$CURSOR_FILE")")")"
 fi
 
-# Find all directories
-ALL_DIRS=$(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d)
-DIR_COUNT=$(echo "$ALL_DIRS" | wc -l)
+while IFS= read -r dir; do
+  [[ -n "$dir" ]] || continue
+  if [[ "$(realpath -m "$dir")" == "$CURSOR_DIRECTORY" ]]; then
+    continue
+  fi
+  echo "Cleanup: deleting ${dir}" >&2
+  rm -rf -- "$dir"
+done < <(find "$OUTPUT_DIR" -mindepth 1 -maxdepth 1 -type d -regextype posix-extended \
+           -regex '.*/(\.build_)?[0-9]{8}T[0-9]{6}$')
 
-if [ "$DIR_COUNT" -gt 1 ]; then
-    # --- NEW, MORE AGGRESSIVE CLEANUP LOGIC ---
-    # Delete all directories except for the one the cursor is in.
-    for dir in $ALL_DIRS; do
-        # Standardize the path to an absolute path
-        dir_to_check=$(realpath "$dir")
-        if [ "$dir_to_check" != "$CURSOR_DIRECTORY" ]; then
-            echo "Cleanup: Deleting old directory ${dir_to_check}."
-            rm -rf "$dir"
-        fi
-    done
-    # --- END NEW CLEANUP LOGIC ---
-fi
-
-# Create the new batch directory
-BATCH_TIMESTAMP=$(date +%Y%m%dT%H%M%S)
-BATCH_DIR="${OUTPUT_DIR}/${BATCH_TIMESTAMP}/"
-
-mkdir -p "${BATCH_DIR}"
-echo "${BATCH_DIR}"
+BATCH_TIMESTAMP="$(date +%Y%m%dT%H%M%S)"
+STAGING_DIR="${OUTPUT_DIR}/.build_${BATCH_TIMESTAMP}"
+mkdir -p "$STAGING_DIR"
+echo "$STAGING_DIR"
